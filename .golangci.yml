@@ -50,14 +50,10 @@ linters-settings:
   tenv:
     all: true
 
-  varcheck:
-    exported-fields: false # this appears to improperly detect exported variables as unused when they are used from a package with the same name
-
 
 linters:
   disable-all: true
   enable:
-    - deadcode # Finds unused code
     - errcheck # Errcheck is a program for checking for unchecked errors in go programs. These unchecked errors can be critical bugs in some cases
     - gosimple # Linter for Go source code that specializes in simplifying a code
     - govet # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
@@ -65,16 +61,13 @@ linters:
     - staticcheck # Staticcheck is a go vet on steroids, applying a ton of static analysis checks
     - typecheck # Like the front-end of a Go compiler, parses and type-checks Go code
     - unused # Checks Go code for unused constants, variables, functions and types
-    - varcheck # Finds unused global variables and constants
     - asasalint # Check for pass []any as any in variadic func(...any)
     - asciicheck # Simple linter to check that your code does not contain non-ASCII identifiers
     - bidichk # Checks for dangerous unicode character sequences
     - bodyclose # checks whether HTTP response body is closed successfully
     - durationcheck # check for two durations multiplied together
     - errorlint # errorlint is a linter for that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.
-    - execinquery # execinquery is a linter about query string checker in Query function which reads your Go src files and warning it finds
     - exhaustive # check exhaustiveness of enum switch statements
-    - exportloopref # checks for pointers to enclosing loop variables
     - forbidigo # Forbids identifiers
     - gochecknoinits # Checks that no init functions are present in Go code
     - goconst # Finds repeated strings that could be replaced by a constant
