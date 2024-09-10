@@ -179,7 +179,7 @@ func (c *Client) addEmailToRule(
 	return true, ratelimitData, err
 }
 
-func (c *Client) AddEmailToSshRule(
+func (c *Client) AddEmailToSSHRule(
 	ctx context.Context,
 	ruleHash string,
 	email string,
@@ -191,7 +191,7 @@ func (c *Client) AddEmailToSshRule(
 	return c.addEmailToRule(ctx, ruleHash, RuleKeySSH, "ssh", email)
 }
 
-func (c *Client) AddEmailToAclRule(
+func (c *Client) AddEmailToACLRule(
 	ctx context.Context,
 	ruleHash string,
 	email string,
@@ -237,7 +237,7 @@ func (c *Client) removeEmailFromRule(
 	return true, ratelimitData, err
 }
 
-func (c *Client) RemoveEmailFromSshRule(
+func (c *Client) RemoveEmailFromSSHRule(
 	ctx context.Context,
 	ruleHash string,
 	email string,
@@ -249,7 +249,7 @@ func (c *Client) RemoveEmailFromSshRule(
 	return c.removeEmailFromRule(ctx, ruleHash, RuleKeySSH, "ssh", email)
 }
 
-func (c *Client) RemoveEmailFromAclRule(
+func (c *Client) RemoveEmailFromACLRule(
 	ctx context.Context,
 	ruleHash string,
 	email string,

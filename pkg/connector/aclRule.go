@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/conductorone/baton-sdk/pb/c1/connector/v2"
+	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	"github.com/conductorone/baton-sdk/pkg/types/entitlement"
@@ -107,7 +107,7 @@ func (o *aclRuleBuilder) Grant(
 	principal *v2.Resource,
 	entitlement *v2.Entitlement,
 ) (annotations.Annotations, error) {
-	wasAdded, ratelimitData, err := o.client.AddEmailToAclRule(ctx, entitlement.Id, principal.Id.Resource)
+	wasAdded, ratelimitData, err := o.client.AddEmailToACLRule(ctx, entitlement.Id, principal.Id.Resource)
 	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err
@@ -124,7 +124,7 @@ func (o *aclRuleBuilder) Revoke(
 	ctx context.Context,
 	grant *v2.Grant,
 ) (annotations.Annotations, error) {
-	wasRevoked, ratelimitData, err := o.client.RemoveEmailFromAclRule(
+	wasRevoked, ratelimitData, err := o.client.RemoveEmailFromACLRule(
 		ctx,
 		grant.Entitlement.Id,
 		grant.Principal.Id.Resource,
@@ -141,7 +141,7 @@ func (o *aclRuleBuilder) Revoke(
 	return outputAnnotations, nil
 }
 
-func newAclRuleBuilder(client *client.Client) *aclRuleBuilder {
+func newACLRuleBuilder(client *client.Client) *aclRuleBuilder {
 	return &aclRuleBuilder{
 		resourceType: userResourceType,
 		client:       client,

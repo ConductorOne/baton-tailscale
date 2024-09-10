@@ -38,9 +38,7 @@ func GetGroupRulesFromHujson(input hujson.ValueTrimmed, groupName string) ([]str
 
 			return utils.GetPatternFromHujson(
 				groupMember.Value.Value,
-				func(s string) bool {
-					return utils.IsValidEmail(s)
-				},
+				utils.IsValidEmail,
 			), nil
 		}
 

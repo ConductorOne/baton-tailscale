@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	apiPathAcl  = "/tailnet/%s/acl"
+	apiPathACL  = "/tailnet/%s/acl"
 	baseUrl     = "https://api.tailscale.com/api/v2"
 	contentType = "application/hujson"
 	groupPrefix = "group:"
@@ -59,8 +59,8 @@ func WithBody(body io.Reader) uhttp.RequestOption {
 	}
 }
 
-func (c *Client) getAclUrl() (*url.URL, error) {
-	return url.Parse(baseUrl + fmt.Sprintf(apiPathAcl, c.tailnet))
+func (c *Client) getACLUrl() (*url.URL, error) {
+	return url.Parse(baseUrl + fmt.Sprintf(apiPathACL, c.tailnet))
 }
 
 func (c *Client) get(ctx context.Context, target interface{}) (
@@ -97,7 +97,7 @@ func (c *Client) makeRequest(
 	error,
 ) {
 	logger := ctxzap.Extract(ctx)
-	path, err := c.getAclUrl()
+	path, err := c.getACLUrl()
 	if err != nil {
 		return "", nil, err
 	}

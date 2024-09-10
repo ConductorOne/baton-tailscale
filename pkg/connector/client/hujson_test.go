@@ -1,11 +1,11 @@
-package utils
+package client
 
 import (
 	"context"
 	"strings"
 	"testing"
 
-	"github.com/conductorone/baton-tailscale/pkg/connector/client"
+	"github.com/conductorone/baton-tailscale/pkg/utils"
 	"github.com/conductorone/baton-tailscale/test"
 	"github.com/stretchr/testify/require"
 	"github.com/tailscale/hujson"
@@ -15,10 +15,8 @@ func TestGetPatternFromHujson(t *testing.T) {
 	val, err := hujson.Parse([]byte(test.FullJSONExample))
 	require.Nil(t, err)
 
-	emailsGeneric := GetPatternFromHujson(val.Value, func(s string) bool {
-		return IsValidEmail(s)
-	})
-	groupNamesGeneric := GetPatternFromHujson(val.Value, func(s string) bool {
+	emailsGeneric := utils.GetPatternFromHujson(val.Value, utils.IsValidEmail)
+	groupNamesGeneric := utils.GetPatternFromHujson(val.Value, func(s string) bool {
 		return strings.HasPrefix(s, "group:")
 	})
 
@@ -53,10 +51,10 @@ func TestAddEmailToSSHHujson(t *testing.T) {
 	require.Nil(t, err)
 
 	// f5bbecb4d717767d25115f8c5addd91a8506309a4475285dfaf229d7d17afc02 is the hash of `checkautogroup:selfautogroup:nonrootroot`
-	_, err = client.AddEmailToRule(
+	_, err = AddEmailToRule(
 		ctx,
 		val,
-		client.RuleKeySSH,
+		RuleKeySSH,
 		"f5bbecb4d717767d25115f8c5addd91a8506309a4475285dfaf229d7d17afc02",
 		"bonk.flambe@insulator.one",
 	)
