@@ -143,7 +143,7 @@ func (o *sshRuleBuilder) Revoke(
 
 func newSSHRuleBuilder(client *client.Client) *sshRuleBuilder {
 	return &sshRuleBuilder{
-		resourceType: userResourceType,
+		resourceType: sshRuleResourceType,
 		client:       client,
 	}
 }

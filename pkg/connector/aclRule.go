@@ -143,7 +143,7 @@ func (o *aclRuleBuilder) Revoke(
 
 func newACLRuleBuilder(client *client.Client) *aclRuleBuilder {
 	return &aclRuleBuilder{
-		resourceType: userResourceType,
+		resourceType: aclRuleResourceType,
 		client:       client,
 	}
 }

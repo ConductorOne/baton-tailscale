@@ -176,7 +176,7 @@ func (o *groupBuilder) Revoke(
 
 func newGroupBuilder(client *client.Client) *groupBuilder {
 	return &groupBuilder{
-		resourceType: userResourceType,
+		resourceType: groupResourceType,
 		client:       client,
 	}
 }
