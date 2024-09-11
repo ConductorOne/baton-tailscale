@@ -7,10 +7,10 @@ const (
 )
 
 func Truncate(input string, size int) string {
-	if len(input) < size {
+	if len(input) <= size {
 		return input
 	}
-	if len(input) > len(ellipses) {
+	if len(input) <= len(ellipses) {
 		return ellipses
 	}
 

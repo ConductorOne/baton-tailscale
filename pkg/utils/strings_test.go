@@ -14,10 +14,9 @@ func TestTruncate(t *testing.T) {
 		message  string
 	}{
 		{"", 10, "", "empty string"},
-		{"123", 3, "123", "does not exceed length"},
-		{"123456", 3, "123...", "exceed length"},
-		{"123", 3, "...", "oops all ellipses"},
-		{"1", 3, "...", "string to short"},
+		{"123456789", 10, "123456789", "does not exceed length"},
+		{"1234567890123", 10, "1234567...", "exceed length"},
+		{"123", 2, "...", "oops all ellipses"},
 	}
 
 	for _, testCase := range testCases {
