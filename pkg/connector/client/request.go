@@ -105,7 +105,9 @@ func (c *Client) makeRequest(
 	options := []uhttp.RequestOption{
 		uhttp.WithAccept(contentType),
 		uhttp.WithContentType(contentType),
-		WithBody(requestBody),
+	}
+	if requestBody != nil {
+		options = append(options, WithBody(requestBody))
 	}
 	if etag != "" {
 		options = append(options, uhttp.WithHeader(ifMatch, etag))
