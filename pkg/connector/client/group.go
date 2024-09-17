@@ -48,7 +48,7 @@ func GetGroupRulesFromHujson(input hujson.ValueTrimmed, groupName string) ([]str
 	return []string{}, nil
 }
 
-func FindGroupArray(input hujson.Value, groupName string) (*hujson.Array, error) {
+func FindGroupArray(input *hujson.Value, groupName string) (*hujson.Array, error) {
 	rootObj, ok := input.Value.(*hujson.Object)
 	if !ok {
 		return nil, errors.New("root value was not an object")
@@ -91,7 +91,7 @@ func FindGroupArray(input hujson.Value, groupName string) (*hujson.Array, error)
 // AddEmailToGroup TODO MARCOS FIRST DESCRIBE
 func AddEmailToGroup(
 	ctx context.Context,
-	input hujson.Value,
+	input *hujson.Value,
 	groupName string,
 	email string,
 ) (bool, error) {
@@ -128,7 +128,7 @@ func AddEmailToGroup(
 
 func RemoveEmailFromGroup(
 	ctx context.Context,
-	input hujson.Value,
+	input *hujson.Value,
 	groupName string,
 	email string,
 ) (bool, error) {

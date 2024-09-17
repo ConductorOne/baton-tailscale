@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -24,28 +25,6 @@ const (
 	ifMatch     = "If-Match"
 )
 
-// WithHujsonResponse TODO(marcos): Move this helper to baton-sdk.
-func WithHujsonResponse(response interface{}) uhttp.DoOption {
-	return func(resp *uhttp.WrapperResponse) error {
-		responseContentType := resp.Header.Get("content-type")
-		if !uhttp.IsJSONContentType(responseContentType) {
-			return fmt.Errorf("unexpected content type for json response: %s", responseContentType)
-		}
-		if response == nil && len(resp.Body) == 0 {
-			return nil
-		}
-
-		// TODO(marcos): The original parser would only read up to 256 kB.
-		// Should we also error when that happens?
-		parsed, err := hujson.Parse(resp.Body)
-		if err != nil {
-			return fmt.Errorf("tailscale-connector: %w", err)
-		}
-		response = parsed
-		return nil
-	}
-}
-
 // WithBody TODO(marcos): Clean this up and move it to baton-sdk.
 func WithBody(body io.Reader) uhttp.RequestOption {
 	return func() (io.ReadWriter, map[string]string, error) {
@@ -63,35 +42,36 @@ func (c *Client) getACLUrl() (*url.URL, error) {
 	return url.Parse(baseUrl + fmt.Sprintf(apiPathACL, c.tailnet))
 }
 
-func (c *Client) get(ctx context.Context, target interface{}) (
+func (c *Client) get(ctx context.Context) (
+	*hujson.Value,
 	string,
 	*v2.RateLimitDescription,
 	error,
 ) {
-	return c.makeRequest(ctx, http.MethodGet, target, nil, "")
+	return c.makeRequest(ctx, http.MethodGet, nil, "")
 }
 
 func (c *Client) post(ctx context.Context, requestBody io.Reader, etag string) (
+	*hujson.Value,
 	*v2.RateLimitDescription,
 	error,
 ) {
-	_, ratelimitData, err := c.makeRequest(
+	value, _, ratelimitData, err := c.makeRequest(
 		ctx,
 		http.MethodPost,
-		nil,
 		requestBody,
 		etag,
 	)
-	return ratelimitData, err
+	return value, ratelimitData, err
 }
 
 func (c *Client) makeRequest(
 	ctx context.Context,
 	method string,
-	target interface{},
 	requestBody io.Reader,
 	etag string,
 ) (
+	*hujson.Value,
 	string,
 	*v2.RateLimitDescription,
 	error,
@@ -99,7 +79,7 @@ func (c *Client) makeRequest(
 	logger := ctxzap.Extract(ctx)
 	path, err := c.getACLUrl()
 	if err != nil {
-		return "", nil, err
+		return nil, "", nil, err
 	}
 
 	options := []uhttp.RequestOption{
@@ -120,7 +100,7 @@ func (c *Client) makeRequest(
 		options...,
 	)
 	if err != nil {
-		return "", nil, err
+		return nil, "", nil, err
 	}
 
 	request.SetBasicAuth(c.apiKey, "")
@@ -129,7 +109,6 @@ func (c *Client) makeRequest(
 	response, err := c.wrapper.Do(
 		request,
 		uhttp.WithRatelimitData(&ratelimitData),
-		WithHujsonResponse(target),
 	)
 	if err != nil {
 		if response != nil && response.StatusCode == http.StatusPreconditionFailed {
@@ -137,14 +116,28 @@ func (c *Client) makeRequest(
 				"tailscale: precondition failed, the etag didn't match",
 				zap.Int("status_code", response.StatusCode),
 			)
-			return "", &ratelimitData, errors.New("error updating tailscale grants: precondition failed")
+			return nil, "", &ratelimitData, errors.New("error updating tailscale grants: precondition failed")
 		}
 
-		return "", &ratelimitData, err
+		return nil, "", &ratelimitData, err
+	}
+
+	responseContentType := response.Header.Get("content-type")
+	// We expect the content type to be `application/hujson`.
+	if !uhttp.IsJSONContentType(responseContentType) {
+		return nil, "", nil, fmt.Errorf("unexpected content type for json response: %s", responseContentType)
 	}
 
 	defer response.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	// TODO(marcos): The original parser would only read up to 256 kB.
+	// Should we also error when that happens?
+	parsed, err := hujson.Parse(bodyBytes)
+	if err != nil {
+		println(err.Error())
+		return nil, "", nil, fmt.Errorf("tailscale-connector: %w", err)
+	}
 
 	etag = response.Header.Get("etag")
-	return etag, &ratelimitData, nil
+	return &parsed, etag, &ratelimitData, nil
 }

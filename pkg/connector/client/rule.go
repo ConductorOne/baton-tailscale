@@ -100,7 +100,7 @@ func GetRulesFromHujson(input hujson.ValueTrimmed, ruleKey ruleKey) ([]rule, err
 
 // FindRuleArray TODO MARCOS DESCRIBE
 func FindRuleArray(
-	input hujson.Value,
+	input *hujson.Value,
 	ruleKey ruleKey,
 	ruleHash string,
 ) (*hujson.Array, error) {
@@ -163,7 +163,7 @@ func FindRuleArray(
 
 func AddEmailToRule(
 	ctx context.Context,
-	input hujson.Value,
+	input *hujson.Value,
 	ruleKey ruleKey,
 	ruleHash string,
 	email string,
@@ -201,7 +201,7 @@ func AddEmailToRule(
 
 func RemoveEmailFromRule(
 	ctx context.Context,
-	input hujson.Value,
+	input *hujson.Value,
 	ruleKey ruleKey,
 	ruleHash string,
 	email string,

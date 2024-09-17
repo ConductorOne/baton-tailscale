@@ -9,6 +9,7 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/conductorone/baton-tailscale/pkg/utils"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 const (
@@ -51,8 +52,7 @@ func (c *Client) ListGroups(ctx context.Context) (
 	*v2.RateLimitDescription,
 	error,
 ) {
-	var response tailscaleResponseTrimmed
-	_, ratelimitData, err := c.get(ctx, &response)
+	response, _, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return nil, ratelimitData, err
 	}
@@ -92,13 +92,12 @@ func (c *Client) AddEmailToGroup(
 	*v2.RateLimitDescription,
 	error,
 ) {
-	var response tailscaleResponse
-	etag, ratelimitData, err := c.get(ctx, &response)
+	response, etag, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return false, ratelimitData, err
 	}
 
-	wasAdded, err := AddEmailToGroup(ctx, response.Value, groupName, email)
+	wasAdded, err := AddEmailToGroup(ctx, response, groupName, email)
 	if err != nil {
 		return false, nil, err
 	}
@@ -107,10 +106,10 @@ func (c *Client) AddEmailToGroup(
 		return false, ratelimitData, nil
 	}
 
-	response.Value.Format()
-	postBody := strings.NewReader(response.Value.String())
+	response.Format()
+	postBody := strings.NewReader(response.String())
 
-	ratelimitData, err = c.post(ctx, postBody, etag)
+	_, ratelimitData, err = c.post(ctx, postBody, etag)
 	return true, ratelimitData, err
 }
 
@@ -123,13 +122,12 @@ func (c *Client) RemoveEmailFromGroup(
 	*v2.RateLimitDescription,
 	error,
 ) {
-	var response tailscaleResponse
-	etag, ratelimitData, err := c.get(ctx, &response)
+	response, etag, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return false, ratelimitData, err
 	}
 
-	wasRemoved, err := RemoveEmailFromGroup(ctx, response.Value, groupName, email)
+	wasRemoved, err := RemoveEmailFromGroup(ctx, response, groupName, email)
 	if err != nil {
 		return false, nil, err
 	}
@@ -138,10 +136,10 @@ func (c *Client) RemoveEmailFromGroup(
 		return false, ratelimitData, nil
 	}
 
-	response.Value.Format()
-	postBody := strings.NewReader(response.Value.String())
+	response.Format()
+	postBody := strings.NewReader(response.String())
 
-	ratelimitData, err = c.post(ctx, postBody, etag)
+	_, ratelimitData, err = c.post(ctx, postBody, etag)
 	return true, ratelimitData, err
 }
 
@@ -156,14 +154,13 @@ func (c *Client) addEmailToRule(
 	*v2.RateLimitDescription,
 	error,
 ) {
-	var response tailscaleResponse
-	etag, ratelimitData, err := c.get(ctx, &response)
+	response, etag, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return false, ratelimitData, err
 	}
 
 	hash := strings.TrimPrefix(ruleHash, fmt.Sprintf("%s:", hashPrefix))
-	wasAdded, err := AddEmailToRule(ctx, response.Value, ruleKey, hash, email)
+	wasAdded, err := AddEmailToRule(ctx, response, ruleKey, hash, email)
 	if err != nil {
 		return false, nil, err
 	}
@@ -172,10 +169,10 @@ func (c *Client) addEmailToRule(
 		return false, ratelimitData, nil
 	}
 
-	response.Value.Format()
-	postBody := strings.NewReader(response.Value.String())
+	response.Format()
+	postBody := strings.NewReader(response.String())
 
-	ratelimitData, err = c.post(ctx, postBody, etag)
+	_, ratelimitData, err = c.post(ctx, postBody, etag)
 	return true, ratelimitData, err
 }
 
@@ -214,14 +211,13 @@ func (c *Client) removeEmailFromRule(
 	*v2.RateLimitDescription,
 	error,
 ) {
-	var response tailscaleResponse
-	etag, ratelimitData, err := c.get(ctx, &response)
+	response, etag, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return false, ratelimitData, err
 	}
 
 	hash := strings.TrimPrefix(ruleHash, fmt.Sprintf("%s:", hashPrefix))
-	wasRemoved, err := RemoveEmailFromRule(ctx, response.Value, ruleKey, hash, email)
+	wasRemoved, err := RemoveEmailFromRule(ctx, response, ruleKey, hash, email)
 	if err != nil {
 		return false, nil, err
 	}
@@ -230,10 +226,10 @@ func (c *Client) removeEmailFromRule(
 		return false, ratelimitData, nil
 	}
 
-	response.Value.Format()
-	postBody := strings.NewReader(response.Value.String())
+	response.Format()
+	postBody := strings.NewReader(response.String())
 
-	ratelimitData, err = c.post(ctx, postBody, etag)
+	_, ratelimitData, err = c.post(ctx, postBody, etag)
 	return true, ratelimitData, err
 }
 
@@ -269,8 +265,7 @@ func (c *Client) ListGroupMemberships(
 	*v2.RateLimitDescription,
 	error,
 ) {
-	var response tailscaleResponseTrimmed
-	_, ratelimitData, err := c.get(ctx, &response)
+	response, _, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return nil, ratelimitData, err
 	}
@@ -290,12 +285,18 @@ func (c *Client) listRules(
 	*v2.RateLimitDescription,
 	error,
 ) {
-	var response tailscaleResponseTrimmed
-	_, ratelimitData, err := c.get(ctx, &response)
+	logger := ctxzap.Extract(ctx)
+	logger.Debug(
+		"listRules",
+		zap.String("key", string(key)),
+		zap.String("idPrefix", idPrefix),
+	)
+
+	target, _, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return nil, ratelimitData, err
 	}
-	rules, err := GetRulesFromHujson(response.Value, key)
+	rules, err := GetRulesFromHujson(target.Value, key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -343,8 +344,7 @@ func (c *Client) listRuleEmails(
 	*v2.RateLimitDescription,
 	error,
 ) {
-	var response tailscaleResponseTrimmed
-	_, ratelimitData, err := c.get(ctx, &response)
+	response, _, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return nil, ratelimitData, err
 	}
