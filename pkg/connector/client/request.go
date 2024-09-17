@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -129,12 +128,15 @@ func (c *Client) makeRequest(
 	}
 
 	defer response.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(response.Body)
+	bodyBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
 	// TODO(marcos): The original parser would only read up to 256 kB.
 	// Should we also error when that happens?
 	parsed, err := hujson.Parse(bodyBytes)
 	if err != nil {
-		println(err.Error())
 		return nil, "", nil, fmt.Errorf("tailscale-connector: %w", err)
 	}
 

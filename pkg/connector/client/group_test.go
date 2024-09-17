@@ -68,7 +68,7 @@ func (u *HujsonSuite) TestAddEmailToGroupHujson() {
 	val, err := hujson.Parse([]byte(test.MinimalGroupsExample))
 	require.Nil(u.T(), err)
 
-	_, err = AddEmailToGroup(u.ctx, val, "group:devs", "bonk.flambe@insulator.one")
+	_, err = AddEmailToGroup(u.ctx, &val, "group:devs", "bonk.flambe@insulator.one")
 	require.Nil(u.T(), err)
 
 	require.Equal(u.T(), val.String(), test.ExpectedGroupsResult)
@@ -78,7 +78,7 @@ func (u *HujsonSuite) TestRemoveEmailFromGroupHujson() {
 	val, err := hujson.Parse([]byte(test.ExpectedGroupsResult))
 	require.Nil(u.T(), err)
 
-	_, err = RemoveEmailFromGroup(u.ctx, val, "group:devs", "bonk.flambe@insulator.one")
+	_, err = RemoveEmailFromGroup(u.ctx, &val, "group:devs", "bonk.flambe@insulator.one")
 	require.Nil(u.T(), err)
 
 	require.Equal(u.T(), val.String(), test.MinimalGroupsExample)
@@ -92,7 +92,7 @@ func (u *HujsonSuite) TestAddEmailToACLHujson() {
 	// hash of `acceptjohn.degner@insulator.onelogan.saso@insulator.one`
 	_, err = AddEmailToRule(
 		u.ctx,
-		val,
+		&val,
 		RuleKeyACLs,
 		"5737a0c593a5c4d6473966340e2d0261297a605d741689818c3691307df2a613",
 		"bonk.flambe@insulator.one",
@@ -110,7 +110,7 @@ func (u *HujsonSuite) TestRemoveEmailFromACLHujson() {
 	// hash of `acceptjohn.degner@insulator.onelogan.saso@insulator.one`
 	_, err = RemoveEmailFromRule(
 		u.ctx,
-		val,
+		&val,
 		RuleKeyACLs,
 		"5737a0c593a5c4d6473966340e2d0261297a605d741689818c3691307df2a613",
 		"bonk.flambe@insulator.one",

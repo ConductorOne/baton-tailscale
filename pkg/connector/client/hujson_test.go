@@ -53,7 +53,7 @@ func TestAddEmailToSSHHujson(t *testing.T) {
 	// f5bbecb4d717767d25115f8c5addd91a8506309a4475285dfaf229d7d17afc02 is the hash of `checkautogroup:selfautogroup:nonrootroot`
 	_, err = AddEmailToRule(
 		ctx,
-		val,
+		&val,
 		RuleKeySSH,
 		"f5bbecb4d717767d25115f8c5addd91a8506309a4475285dfaf229d7d17afc02",
 		"bonk.flambe@insulator.one",
