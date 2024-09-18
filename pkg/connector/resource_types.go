@@ -5,24 +5,31 @@ import (
 )
 
 // The user resource type is for all user objects from the database.
-var userResourceType = &v2.ResourceType{
-	Id:          "user",
-	DisplayName: "User",
-	Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_USER},
-}
+var (
+	userResourceType = &v2.ResourceType{
+		Id:          "user",
+		DisplayName: "User",
+		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_USER},
+	}
 
-var groupResourceType = &v2.ResourceType{
-	Id:          "group",
-	DisplayName: "Group",
-	Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_GROUP},
-}
+	groupResourceType = &v2.ResourceType{
+		Id:          "group",
+		DisplayName: "Group",
+		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_GROUP},
+	}
 
-var sshRuleResourceType = &v2.ResourceType{
-	Id:          "sshrule",
-	DisplayName: "SSH Rule",
-}
+	sshRuleResourceType = &v2.ResourceType{
+		Id:          "sshrule",
+		DisplayName: "SSH Rule",
+	}
 
-var aclRuleResourceType = &v2.ResourceType{
-	Id:          "aclrule",
-	DisplayName: "ACL Rule",
-}
+	aclRuleResourceType = &v2.ResourceType{
+		Id:          "aclrule",
+		DisplayName: "ACL Rule",
+	}
+
+	roleResourceType = &v2.ResourceType{
+		Id:          "role",
+		DisplayName: "Role",
+	}
+)

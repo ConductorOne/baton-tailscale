@@ -50,7 +50,7 @@ func userResource(ctx context.Context, user *client.User, parentResourceID *v2.R
 	switch user.Status {
 	case "active":
 		userStatus = v2.UserTrait_Status_STATUS_ENABLED
-	case "inactive":
+	case "suspended":
 		userStatus = v2.UserTrait_Status_STATUS_DISABLED
 	}
 

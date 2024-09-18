@@ -24,3 +24,8 @@ type User struct {
 	DeviceCount   int       `json:"deviceCount,omitempty"`
 	LastSeen      time.Time `json:"lastSeen,omitempty"`
 }
+
+type Role struct {
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+}
