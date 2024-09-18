@@ -23,7 +23,7 @@ func (r *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return r.resourceType
 }
 
-// roleResource creates a new connector resource for a Zendesk role.
+// roleResource creates a new connector resource for a role.
 func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
 		"role_id":   role.ID,
@@ -52,6 +52,7 @@ func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.R
 func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
 	for _, role := range roles {
+		// Add role ID
 		hash := sha256.New()
 		_, err := hash.Write([]byte(role))
 		if err != nil {
