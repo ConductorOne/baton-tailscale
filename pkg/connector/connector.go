@@ -7,14 +7,20 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
+	"github.com/conductorone/baton-tailscale/pkg/connector/client"
 )
 
-type Connector struct{}
+type Connector struct {
+	client *client.Client
+}
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
 func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
 	return []connectorbuilder.ResourceSyncer{
-		newUserBuilder(),
+		newACLRuleBuilder(d.client),
+		newGroupBuilder(d.client),
+		newSSHRuleBuilder(d.client),
+		newUserBuilder(d.client),
 	}
 }
 
@@ -27,8 +33,8 @@ func (d *Connector) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.R
 // Metadata returns metadata about the connector.
 func (d *Connector) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
 	return &v2.ConnectorMetadata{
-		DisplayName: "My Baton Connector",
-		Description: "The template implementation of a baton connector",
+		DisplayName: "Tailscale Connector",
+		Description: "Connector Syncing Tailscale users, groups, and roles",
 	}, nil
 }
 
@@ -39,6 +45,10 @@ func (d *Connector) Validate(ctx context.Context) (annotations.Annotations, erro
 }
 
 // New returns a new instance of the connector.
-func New(ctx context.Context) (*Connector, error) {
-	return &Connector{}, nil
+func New(ctx context.Context, apiKey string, tailnet string) (*Connector, error) {
+	client, err := client.New(ctx, apiKey, tailnet)
+	if err != nil {
+		return nil, err
+	}
+	return &Connector{client: client}, nil
 }
