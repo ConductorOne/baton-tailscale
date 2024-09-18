@@ -3,6 +3,9 @@ package client
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -19,8 +22,54 @@ const (
 type Client struct {
 	apiKey  string
 	tailnet string
+	baseUrl string
 	wrapper *uhttp.BaseHttpClient
 }
+
+type TailscaleError struct {
+	ErrorMessage     string                   `json:"error"`
+	ErrorDescription string                   `json:"error_description"`
+	ErrorCode        int                      `json:"errorCode,omitempty"`
+	ErrorSummary     string                   `json:"errorSummary,omitempty" toml:"error_description"`
+	ErrorLink        string                   `json:"errorLink,omitempty"`
+	ErrorId          string                   `json:"errorId,omitempty"`
+	ErrorCauses      []map[string]interface{} `json:"errorCauses,omitempty"`
+}
+
+func (b *TailscaleError) Error() string {
+	return b.ErrorMessage
+}
+
+func GetCustomErr(req *http.Request, resp *http.Response, err error) *TailscaleError {
+	if req == nil {
+		return &TailscaleError{
+			ErrorMessage:     "Unknown error",
+			ErrorDescription: "request should not be nil",
+		}
+	}
+
+	tailscaleErr := &TailscaleError{
+		ErrorMessage:     err.Error(),
+		ErrorDescription: err.Error(),
+		ErrorLink:        req.URL.String(),
+	}
+
+	if resp != nil {
+		tailscaleErr.ErrorCode = resp.StatusCode
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			tailscaleErr.ErrorSummary = fmt.Sprintf("Error reading response body %s", err.Error())
+			return tailscaleErr
+		}
+
+		tailscaleErr.ErrorSummary = string(bodyBytes)
+	}
+
+	return tailscaleErr
+}
+
+// GET - https://api.tailscale.com/api/v2/tailnet/alice@example.com/..."
+// POST - http://{baseurl}/rest/api/latest/admin/users/add-groups
 
 // New creates a new client.
 func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
@@ -43,6 +92,7 @@ func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
 	return &Client{
 		apiKey:  apiKey,
 		tailnet: tailnet,
+		baseUrl: "https://api.tailscale.com/api/v2",
 		wrapper: wrapper,
 	}, nil
 }
@@ -387,4 +437,41 @@ func (c *Client) ListACLEmails(ctx context.Context, ruleId string) (
 	error,
 ) {
 	return c.listRuleEmails(ctx, ruleId, "acls", "acl")
+}
+
+func WithAuthorizationBearerHeader(token string) uhttp.RequestOption {
+	return uhttp.WithHeader("Authorization", "Bearer "+token)
+}
+
+// GetUsers. Get all users. Only authenticated users may call this resource.
+// https://tailscale.com/api#tag/users/GET/tailnet/{tailnet}/users
+// The Tailscale API does not currently support pagination. All results are returned at once.
+func (c *Client) GetUsers(ctx context.Context) ([]User, error) {
+	var userData UsersAPIData
+	endpointUrl, err := url.JoinPath(c.baseUrl, "tailnet", c.tailnet, "users")
+	if err != nil {
+		return nil, err
+	}
+
+	uri, err := url.Parse(endpointUrl)
+	if err != nil {
+		return nil, err
+	}
+	req, err := c.wrapper.NewRequest(ctx,
+		http.MethodGet,
+		uri,
+		uhttp.WithAcceptJSONHeader(),
+		WithAuthorizationBearerHeader(c.apiKey),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.wrapper.Do(req, uhttp.WithJSONResponse(&userData))
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	return userData.Users, nil
 }
