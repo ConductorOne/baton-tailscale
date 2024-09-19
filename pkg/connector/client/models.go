@@ -56,3 +56,13 @@ type Device struct {
 	UpdateAvailable           bool      `json:"updateAvailable,omitempty"`
 	User                      string    `json:"user,omitempty"`
 }
+
+type UserInvitesAPIData []struct {
+	ID              string    `json:"id"`
+	Role            string    `json:"role"`
+	TailnetID       int64     `json:"tailnetId"`
+	InviterID       int64     `json:"inviterId"`
+	Email           string    `json:"email"`
+	LastEmailSentAt time.Time `json:"lastEmailSentAt"`
+	InviteURL       string    `json:"inviteUrl"`
+}

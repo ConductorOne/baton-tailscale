@@ -76,3 +76,19 @@ func TestDeviceBuilderList(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, res)
 }
+
+func TestGetUserInvites(t *testing.T) {
+	if apiKey == "" && tailnet == "" {
+		t.Skip()
+	}
+
+	cli, err := getClientForTesting(ctxTest, apiKey, tailnet)
+	require.Nil(t, err)
+
+	u := &userBuilder{
+		client: cli,
+	}
+	res, err := u.client.GetUserInvites(ctxTest)
+	require.Nil(t, err)
+	require.NotNil(t, res)
+}
