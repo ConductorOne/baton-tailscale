@@ -32,4 +32,8 @@ var (
 		Id:          "role",
 		DisplayName: "Role",
 	}
+	deviceResourceType = &v2.ResourceType{
+		Id:          "device",
+		DisplayName: "Device",
+	}
 )

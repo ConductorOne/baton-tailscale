@@ -23,7 +23,8 @@ type Client struct {
 	wrapper *uhttp.BaseHttpClient
 }
 
-// GET - https://api.tailscale.com/api/v2/tailnet/alice@example.com/..."
+// GET - https://api.tailscale.com/api/v2/tailnet/example.com/users"
+// GET - https://api.tailscale.com/api/v2/tailnet/example.com/devices
 
 // New creates a new client.
 func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
@@ -347,6 +348,39 @@ func (c *Client) GetUsers(ctx context.Context) ([]User, error) {
 	}
 
 	defer resp.Body.Close()
-
 	return userData.Users, nil
+}
+
+// GetDevices. Get all devices. Only authenticated users may call this resource.
+// https://tailscale.com/api#tag/devices/GET/tailnet/{tailnet}/devices
+// The Tailscale API does not currently support pagination. All results are returned at once.
+func (c *Client) GetDevices(ctx context.Context) ([]Device, error) {
+	var deviceData DevicesAPIData
+	endpointUrl, err := url.JoinPath(c.baseUrl, "tailnet", c.tailnet, "devices")
+	if err != nil {
+		return nil, err
+	}
+
+	uri, err := url.Parse(endpointUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := c.wrapper.NewRequest(ctx,
+		http.MethodGet,
+		uri,
+		uhttp.WithAcceptJSONHeader(),
+		WithAuthorizationBearerHeader(c.apiKey),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.wrapper.Do(req, uhttp.WithJSONResponse(&deviceData))
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	return deviceData.Devices, nil
 }

@@ -42,3 +42,37 @@ func getClientForTesting(ctx context.Context, apiKey string, tailnet string) (*c
 
 	return client, err
 }
+
+func TestRoleBuilderList(t *testing.T) {
+	if apiKey == "" && tailnet == "" {
+		t.Skip()
+	}
+
+	cli, err := getClientForTesting(ctxTest, apiKey, tailnet)
+	require.Nil(t, err)
+
+	r := &roleBuilder{
+		resourceType: userResourceType,
+		client:       cli,
+	}
+	res, _, _, err := r.List(ctxTest, nil, nil)
+	require.Nil(t, err)
+	require.NotNil(t, res)
+}
+
+func TestDeviceBuilderList(t *testing.T) {
+	if apiKey == "" && tailnet == "" {
+		t.Skip()
+	}
+
+	cli, err := getClientForTesting(ctxTest, apiKey, tailnet)
+	require.Nil(t, err)
+
+	d := &deviceBuilder{
+		resourceType: deviceResourceType,
+		client:       cli,
+	}
+	res, _, _, err := d.List(ctxTest, nil, nil)
+	require.Nil(t, err)
+	require.NotNil(t, res)
+}
