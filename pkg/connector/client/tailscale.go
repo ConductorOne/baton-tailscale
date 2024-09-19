@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,9 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	userAgent = "ConductorOne/tailscale-connector-0.2.0"
-)
+const userAgent = "ConductorOne/tailscale-connector-0.2.0"
 
 type Client struct {
 	apiKey  string
@@ -26,59 +23,13 @@ type Client struct {
 	wrapper *uhttp.BaseHttpClient
 }
 
-type TailscaleError struct {
-	ErrorMessage     string                   `json:"error"`
-	ErrorDescription string                   `json:"error_description"`
-	ErrorCode        int                      `json:"errorCode,omitempty"`
-	ErrorSummary     string                   `json:"errorSummary,omitempty" toml:"error_description"`
-	ErrorLink        string                   `json:"errorLink,omitempty"`
-	ErrorId          string                   `json:"errorId,omitempty"`
-	ErrorCauses      []map[string]interface{} `json:"errorCauses,omitempty"`
-}
-
-func (b *TailscaleError) Error() string {
-	return b.ErrorMessage
-}
-
-func GetCustomErr(req *http.Request, resp *http.Response, err error) *TailscaleError {
-	if req == nil {
-		return &TailscaleError{
-			ErrorMessage:     "Unknown error",
-			ErrorDescription: "request should not be nil",
-		}
-	}
-
-	tailscaleErr := &TailscaleError{
-		ErrorMessage:     err.Error(),
-		ErrorDescription: err.Error(),
-		ErrorLink:        req.URL.String(),
-	}
-
-	if resp != nil {
-		tailscaleErr.ErrorCode = resp.StatusCode
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			tailscaleErr.ErrorSummary = fmt.Sprintf("Error reading response body %s", err.Error())
-			return tailscaleErr
-		}
-
-		tailscaleErr.ErrorSummary = string(bodyBytes)
-	}
-
-	return tailscaleErr
-}
-
 // GET - https://api.tailscale.com/api/v2/tailnet/alice@example.com/..."
-// POST - http://{baseurl}/rest/api/latest/admin/users/add-groups
 
 // New creates a new client.
 func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
 	httpClient, err := uhttp.NewClient(
 		ctx,
-		uhttp.WithLogger(
-			true,
-			ctxzap.Extract(ctx),
-		),
+		uhttp.WithLogger(true, ctxzap.Extract(ctx)),
 		uhttp.WithUserAgent(userAgent),
 	)
 	if err != nil {
@@ -97,15 +48,12 @@ func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) ListGroups(ctx context.Context) (
-	[]Resource,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListGroups(ctx context.Context) ([]Resource, *v2.RateLimitDescription, error) {
 	response, _, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return nil, ratelimitData, err
 	}
+
 	groupNames := utils.Unique(
 		utils.Convert(
 			utils.GetPatternFromHujson(
@@ -133,15 +81,7 @@ func (c *Client) ListGroups(ctx context.Context) (
 	return groups, ratelimitData, nil
 }
 
-func (c *Client) AddEmailToGroup(
-	ctx context.Context,
-	groupName string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) AddEmailToGroup(ctx context.Context, groupName string, email string) (bool, *v2.RateLimitDescription, error) {
 	response, etag, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return false, ratelimitData, err
@@ -158,20 +98,12 @@ func (c *Client) AddEmailToGroup(
 
 	response.Format()
 	postBody := strings.NewReader(response.String())
-
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
+
 	return true, ratelimitData, err
 }
 
-func (c *Client) RemoveEmailFromGroup(
-	ctx context.Context,
-	groupName string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) RemoveEmailFromGroup(ctx context.Context, groupName string, email string) (bool, *v2.RateLimitDescription, error) {
 	response, etag, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return false, ratelimitData, err
@@ -188,8 +120,8 @@ func (c *Client) RemoveEmailFromGroup(
 
 	response.Format()
 	postBody := strings.NewReader(response.String())
-
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
+
 	return true, ratelimitData, err
 }
 
@@ -221,32 +153,16 @@ func (c *Client) addEmailToRule(
 
 	response.Format()
 	postBody := strings.NewReader(response.String())
-
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
+
 	return true, ratelimitData, err
 }
 
-func (c *Client) AddEmailToSSHRule(
-	ctx context.Context,
-	ruleHash string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) AddEmailToSSHRule(ctx context.Context, ruleHash string, email string) (bool, *v2.RateLimitDescription, error) {
 	return c.addEmailToRule(ctx, ruleHash, RuleKeySSH, "ssh", email)
 }
 
-func (c *Client) AddEmailToACLRule(
-	ctx context.Context,
-	ruleHash string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) AddEmailToACLRule(ctx context.Context, ruleHash string, email string) (bool, *v2.RateLimitDescription, error) {
 	return c.addEmailToRule(ctx, ruleHash, RuleKeyACLs, "acl", email)
 }
 
@@ -278,43 +194,20 @@ func (c *Client) removeEmailFromRule(
 
 	response.Format()
 	postBody := strings.NewReader(response.String())
-
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
+
 	return true, ratelimitData, err
 }
 
-func (c *Client) RemoveEmailFromSSHRule(
-	ctx context.Context,
-	ruleHash string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) RemoveEmailFromSSHRule(ctx context.Context, ruleHash string, email string) (bool, *v2.RateLimitDescription, error) {
 	return c.removeEmailFromRule(ctx, ruleHash, RuleKeySSH, "ssh", email)
 }
 
-func (c *Client) RemoveEmailFromACLRule(
-	ctx context.Context,
-	ruleHash string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) RemoveEmailFromACLRule(ctx context.Context, ruleHash string, email string) (bool, *v2.RateLimitDescription, error) {
 	return c.removeEmailFromRule(ctx, ruleHash, RuleKeyACLs, "acl", email)
 }
 
-func (c *Client) ListGroupMemberships(
-	ctx context.Context,
-	groupName string,
-) (
-	[]string,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListGroupMemberships(ctx context.Context, groupName string) ([]string, *v2.RateLimitDescription, error) {
 	response, _, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return nil, ratelimitData, err
@@ -326,15 +219,7 @@ func (c *Client) ListGroupMemberships(
 	return emails, ratelimitData, nil
 }
 
-func (c *Client) listRules(
-	ctx context.Context,
-	key ruleKey,
-	idPrefix string,
-) (
-	[]Resource,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) listRules(ctx context.Context, key ruleKey, idPrefix string) ([]Resource, *v2.RateLimitDescription, error) {
 	logger := ctxzap.Extract(ctx)
 	logger.Debug(
 		"listRules",
@@ -346,6 +231,7 @@ func (c *Client) listRules(
 	if err != nil {
 		return nil, ratelimitData, err
 	}
+
 	rules, err := GetRulesFromHujson(target.Value, key)
 	if err != nil {
 		return nil, nil, err
@@ -365,22 +251,15 @@ func (c *Client) listRules(
 		}
 		output = append(output, newResource)
 	}
+
 	return output, ratelimitData, nil
 }
 
-func (c *Client) ListSSHRules(ctx context.Context) (
-	[]Resource,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListSSHRules(ctx context.Context) ([]Resource, *v2.RateLimitDescription, error) {
 	return c.listRules(ctx, "ssh", "ssh")
 }
 
-func (c *Client) ListACLRules(ctx context.Context) (
-	[]Resource,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListACLRules(ctx context.Context) ([]Resource, *v2.RateLimitDescription, error) {
 	return c.listRules(ctx, "acls", "acl")
 }
 
@@ -398,6 +277,7 @@ func (c *Client) listRuleEmails(
 	if err != nil {
 		return nil, ratelimitData, err
 	}
+
 	rules, err := GetRulesFromHujson(response.Value, key)
 	if err != nil {
 		return nil, nil, err
@@ -420,22 +300,15 @@ func (c *Client) listRuleEmails(
 			}
 		}
 	}
+
 	return emails, ratelimitData, nil
 }
 
-func (c *Client) ListSSHEmails(ctx context.Context, ruleId string) (
-	[]string,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListSSHEmails(ctx context.Context, ruleId string) ([]string, *v2.RateLimitDescription, error) {
 	return c.listRuleEmails(ctx, ruleId, "ssh", "ssh")
 }
 
-func (c *Client) ListACLEmails(ctx context.Context, ruleId string) (
-	[]string,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListACLEmails(ctx context.Context, ruleId string) ([]string, *v2.RateLimitDescription, error) {
 	return c.listRuleEmails(ctx, ruleId, "acls", "acl")
 }
 
@@ -457,6 +330,7 @@ func (c *Client) GetUsers(ctx context.Context) ([]User, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	req, err := c.wrapper.NewRequest(ctx,
 		http.MethodGet,
 		uri,
@@ -473,5 +347,6 @@ func (c *Client) GetUsers(ctx context.Context) ([]User, error) {
 	}
 
 	defer resp.Body.Close()
+
 	return userData.Users, nil
 }
