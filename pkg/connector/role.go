@@ -48,7 +48,6 @@ func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.R
 	return ret, nil
 }
 
-// List always returns an empty slice, we don't sync users.
 func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
 	for _, role := range roles {
