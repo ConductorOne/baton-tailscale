@@ -93,6 +93,7 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		if err != nil {
 			return nil, "", nil, err
 		}
+
 		rv = append(rv, ur)
 	}
 

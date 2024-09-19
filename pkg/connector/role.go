@@ -2,12 +2,12 @@ package connector
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
+	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-tailscale/pkg/connector/client"
 )
@@ -52,15 +52,8 @@ func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.R
 func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
 	for _, role := range roles {
-		// Add role ID
-		hash := sha256.New()
-		_, err := hash.Write([]byte(role))
-		if err != nil {
-			return nil, "", nil, err
-		}
-
 		ur, err := roleResource(ctx, &client.Role{
-			ID:   fmt.Sprintf("%x", hash.Sum(nil)),
+			ID:   role,
 			Name: role,
 		}, parentResourceID)
 		if err != nil {
@@ -73,14 +66,39 @@ func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 	return rv, "", nil, nil
 }
 
-// Entitlements always returns an empty slice for users.
 func (r *roleBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+	return []*v2.Entitlement{
+		{
+			Id:          fmt.Sprintf("role:%s:members", resource.Id.Resource),
+			Resource:    resource,
+			DisplayName: fmt.Sprintf("%s Role Member", resource.DisplayName),
+			Description: fmt.Sprintf("Member of %s Role", resource.DisplayName),
+			GrantableTo: []*v2.ResourceType{userResourceType, groupResourceType},
+			Purpose:     v2.Entitlement_PURPOSE_VALUE_ASSIGNMENT,
+			Slug:        "member",
+		},
+	}, "", nil, nil
 }
 
-// Grants always returns an empty slice for users since they don't have any entitlements.
 func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+	var rv []*v2.Grant
+	roleName := resource.Id.Resource
+	users, err := r.client.GetUsers(ctx)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	for _, user := range users {
+		if roleName != user.Role {
+			continue
+		}
+
+		principalID := &v2.ResourceId{ResourceType: userResourceType.Id, Resource: user.ID}
+		gr := grant.NewGrant(resource, "members", principalID)
+		rv = append(rv, gr)
+	}
+
+	return rv, "", nil, nil
 }
 
 func newRoleBuilder(client *client.Client) *roleBuilder {
