@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -81,23 +82,81 @@ func userResource(ctx context.Context, user *client.User, parentResourceID *v2.R
 
 // List always returns an empty slice, we don't sync users.
 func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	var rv []*v2.Resource
-	users, err := u.client.GetUsers(ctx)
+	var (
+		rv            []*v2.Resource
+		nextPageToken string
+	)
+	_, bag, err := unmarshalSkipToken(pToken)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	for _, user := range users {
-		usrCopy := user
-		ur, err := userResource(ctx, &usrCopy, parentResourceID)
+	if bag.Current() == nil {
+		bag.Push(pagination.PageState{
+			ResourceTypeID: userResourceType.Id,
+		})
+		bag.Push(pagination.PageState{
+			ResourceTypeID: inviteResourceType.Id,
+		})
+	}
+
+	switch bag.ResourceTypeID() {
+	case userResourceType.Id:
+		users, err := u.client.GetUsers(ctx)
 		if err != nil {
 			return nil, "", nil, err
 		}
 
-		rv = append(rv, ur)
+		err = bag.Next(nextPageToken)
+		if err != nil {
+			return nil, "", nil, err
+		}
+
+		for _, user := range users {
+			usrCopy := user
+			ur, err := userResource(ctx, &usrCopy, parentResourceID)
+			if err != nil {
+				return nil, "", nil, err
+			}
+
+			rv = append(rv, ur)
+		}
+
+	case inviteResourceType.Id:
+		userInvites, err := u.client.GetUserInvites(ctx)
+		if err != nil {
+			return nil, "", nil, err
+		}
+
+		err = bag.Next(nextPageToken)
+		if err != nil {
+			return nil, "", nil, err
+		}
+
+		for _, user := range userInvites {
+			ur, err := userResource(ctx, &client.User{
+				ID:          user.ID,
+				DisplayName: user.Email,
+				LoginName:   user.Email,
+				Role:        user.Role,
+			}, parentResourceID)
+			if err != nil {
+				return nil, "", nil, err
+			}
+
+			rv = append(rv, ur)
+		}
+
+	default:
+		return nil, "", nil, fmt.Errorf("tailscale-connector: invalid resource type: %s", bag.ResourceTypeID())
 	}
 
-	return rv, "", nil, nil
+	nextPageToken, err = bag.Marshal()
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	return rv, nextPageToken, nil, nil
 }
 
 // Entitlements always returns an empty slice for users.
