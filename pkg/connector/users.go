@@ -41,11 +41,12 @@ func userResource(ctx context.Context, user *client.User, parentResourceID *v2.R
 	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
 	firstName, lastName := splitFullName(user.DisplayName)
 	profile := map[string]interface{}{
-		"login":      user.LoginName,
-		"first_name": firstName,
-		"last_name":  lastName,
-		"email":      user.LoginName,
-		"user_id":    user.ID,
+		"login":       user.LoginName,
+		"first_name":  firstName,
+		"last_name":   lastName,
+		"email":       user.LoginName,
+		"user_id":     user.ID,
+		"user_status": user.Status,
 	}
 
 	switch user.Status {
@@ -139,6 +140,7 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 				DisplayName: user.Email,
 				LoginName:   user.Email,
 				Role:        user.Role,
+				Status:      "invited",
 			}, parentResourceID)
 			if err != nil {
 				return nil, "", nil, err

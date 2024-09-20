@@ -29,6 +29,7 @@ func TestUserBuilderList(t *testing.T) {
 		resourceType: userResourceType,
 		client:       cli,
 	}
+
 	res, _, _, err := u.List(ctxTest, &v2.ResourceId{}, &pagination.Token{})
 	require.Nil(t, err)
 	require.NotNil(t, res)
@@ -89,6 +90,22 @@ func TestGetUserInvites(t *testing.T) {
 		client: cli,
 	}
 	res, err := u.client.GetUserInvites(ctxTest)
+	require.Nil(t, err)
+	require.NotNil(t, res)
+}
+
+func TestAddUserRole(t *testing.T) {
+	if apiKey == "" && tailnet == "" {
+		t.Skip()
+	}
+
+	cli, err := getClientForTesting(ctxTest, apiKey, tailnet)
+	require.Nil(t, err)
+
+	u := &userBuilder{
+		client: cli,
+	}
+	res, err := u.client.AddUserRole(ctxTest, "uYmTSnEi9711CNTRL", "billing-admin")
 	require.Nil(t, err)
 	require.NotNil(t, res)
 }

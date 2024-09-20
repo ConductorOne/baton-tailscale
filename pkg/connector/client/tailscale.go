@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -418,4 +419,47 @@ func (c *Client) GetDevices(ctx context.Context) ([]Device, error) {
 
 	defer resp.Body.Close()
 	return deviceData.Devices, nil
+}
+
+func (c *Client) AddUserRole(ctx context.Context, userId, roleName string) (bool, error) {
+	var (
+		body struct {
+			Role string `json:"role"`
+		}
+		payload = []byte(fmt.Sprintf(`{"role": "%s"}`, roleName))
+	)
+
+	endpointUrl, err := url.JoinPath(c.baseUrl, "users", userId, "role")
+	if err != nil {
+		return false, err
+	}
+
+	uri, err := url.Parse(endpointUrl)
+	if err != nil {
+		return false, err
+	}
+
+	err = json.Unmarshal(payload, &body)
+	if err != nil {
+		return false, err
+	}
+
+	req, err := c.wrapper.NewRequest(ctx,
+		http.MethodPost,
+		uri,
+		uhttp.WithAcceptJSONHeader(),
+		WithAuthorizationBearerHeader(c.apiKey),
+		uhttp.WithJSONBody(body),
+	)
+	if err != nil {
+		return false, err
+	}
+
+	resp, err := c.wrapper.Do(req)
+	if err != nil {
+		return false, err
+	}
+
+	defer resp.Body.Close()
+	return resp.StatusCode == http.StatusOK, nil
 }

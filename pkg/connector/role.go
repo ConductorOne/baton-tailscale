@@ -10,6 +10,8 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-tailscale/pkg/connector/client"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 type roleBuilder struct {
@@ -98,6 +100,38 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	}
 
 	return rv, "", nil, nil
+}
+
+func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
+	l := ctxzap.Extract(ctx)
+	if principal.Id.ResourceType != userResourceType.Id {
+		l.Warn(
+			"baton-tailscale: only users can be granted role membership",
+			zap.String("principal_type", principal.Id.ResourceType),
+			zap.String("principal_id", principal.Id.Resource),
+		)
+		return nil, fmt.Errorf("baton-tailscale: only users can be granted role membership")
+	}
+
+	userID := principal.Id.Resource
+	roleName := entitlement.Resource.Id.Resource
+	isOk, err := r.client.AddUserRole(ctx, userID, roleName)
+	if err != nil {
+		return nil, fmt.Errorf("tailscale-connector: failed to add user role: %s", err.Error())
+	}
+
+	if isOk {
+		l.Warn("Role Membership has been created.",
+			zap.String("userID", userID),
+			zap.String("roleName", roleName),
+		)
+	}
+
+	return nil, nil
+}
+
+func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
+	return nil, nil
 }
 
 func newRoleBuilder(client *client.Client) *roleBuilder {
