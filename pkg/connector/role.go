@@ -19,6 +19,9 @@ type roleBuilder struct {
 	client       *client.Client
 }
 
+// Standard roles: Owner, Admin, Member
+// Advanced roles: Billing admin, IT admin, Network admin, Auditor
+// https://tailscale.com/kb/1138/user-roles
 var roles = []string{"owner", "admin", "member", "billing-admin", "it-admin", "network-admin", "auditor"}
 
 func (r *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
@@ -115,7 +118,7 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 
 	userID := principal.Id.Resource
 	roleName := entitlement.Resource.Id.Resource
-	isOk, err := r.client.AddUserRole(ctx, userID, roleName)
+	isOk, err := r.client.UpdateUserRole(ctx, userID, roleName)
 	if err != nil {
 		return nil, fmt.Errorf("tailscale-connector: failed to add user role: %s", err.Error())
 	}
@@ -131,6 +134,34 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 }
 
 func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
+	l := ctxzap.Extract(ctx)
+	principal := grant.Principal
+	entitlement := grant.Entitlement
+	if principal.Id.ResourceType != userResourceType.Id {
+		l.Warn(
+			"tailscale-connector: only users can have user membership revoked",
+			zap.String("principal_id", principal.Id.String()),
+			zap.String("principal_type", principal.Id.ResourceType),
+		)
+
+		return nil, fmt.Errorf("tailscale-connector: only users can have user membership revoked")
+	}
+
+	userID := principal.Id.Resource
+	roleName := entitlement.Resource.Id.Resource
+	// users on a tailnet are members by default.
+	isOk, err := r.client.UpdateUserRole(ctx, userID, "member")
+	if err != nil {
+		return nil, fmt.Errorf("tailscale-connector: failed to revoke user role: %s", err.Error())
+	}
+
+	if isOk {
+		l.Warn("Role Membership has been revoked.",
+			zap.String("userID", userID),
+			zap.String("roleName", roleName),
+		)
+	}
+
 	return nil, nil
 }
 

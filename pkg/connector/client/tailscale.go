@@ -421,7 +421,7 @@ func (c *Client) GetDevices(ctx context.Context) ([]Device, error) {
 	return deviceData.Devices, nil
 }
 
-func (c *Client) AddUserRole(ctx context.Context, userId, roleName string) (bool, error) {
+func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) (bool, error) {
 	var (
 		body struct {
 			Role string `json:"role"`

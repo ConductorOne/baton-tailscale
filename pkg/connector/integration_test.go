@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
+	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
+	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	"github.com/conductorone/baton-tailscale/pkg/connector/client"
 	"github.com/stretchr/testify/require"
 )
@@ -107,13 +109,13 @@ func TestAddUserRole(t *testing.T) {
 	u := &userBuilder{
 		client: cliTest,
 	}
-	res, err := u.client.AddUserRole(ctxTest, "uYmTSnEi9711CNTRL", "billing-admin")
+	res, err := u.client.UpdateUserRole(ctxTest, "uYmTSnEi9711CNTRL", "billing-admin")
 	require.Nil(t, err)
 	require.NotNil(t, res)
 }
 
 func TestRoleGrant(t *testing.T) {
-	var licenseEntitlement string
+	var roleEntitlement string
 	if apiKey == "" && tailnet == "" {
 		t.Skip()
 	}
@@ -131,11 +133,11 @@ func TestRoleGrant(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, data)
 
-	licenseEntitlement = data[2]
+	roleEntitlement = data[2]
 	resource, err := getRoleResourceForTesting(ctxTest)
 	require.Nil(t, err)
 
-	entitlement := getEntitlementForTesting(resource, grantPrincipalType, licenseEntitlement)
+	entitlement := getEntitlementForTesting(resource, grantPrincipalType, roleEntitlement)
 	l := &roleBuilder{
 		client: cliTest,
 	}
@@ -145,6 +147,31 @@ func TestRoleGrant(t *testing.T) {
 			Resource:     grantPrincipal,
 		},
 	}, entitlement)
+	require.Nil(t, err)
+}
+
+func TestRoleRevoke(t *testing.T) {
+	if apiKey == "" && tailnet == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest, apiKey, tailnet)
+	require.Nil(t, err)
+
+	principalID := &v2.ResourceId{ResourceType: userResourceType.Id, Resource: "uYmTSnEi9711CNTRL"}
+	resource, err := getRoleResourceForTesting(ctxTest)
+	require.Nil(t, err)
+
+	gr := grant.NewGrant(resource, "members", principalID)
+	annos := annotations.Annotations(gr.Annotations)
+	gr.Annotations = annos
+	require.NotNil(t, gr)
+
+	// --revoke-grant "role:billing-admin:members:user:uYmTSnEi9711CNTRL"
+	r := &roleBuilder{
+		client: cliTest,
+	}
+	_, err = r.Revoke(ctxTest, gr)
 	require.Nil(t, err)
 }
 
