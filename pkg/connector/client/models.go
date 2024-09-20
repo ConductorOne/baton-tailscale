@@ -8,7 +8,7 @@ type Resource struct {
 }
 
 type UsersAPIData struct {
-	Users []User `json:"users"`
+	Users []User `json:"users,omitempty"`
 }
 
 type User struct {
@@ -58,11 +58,11 @@ type Device struct {
 }
 
 type UserInvitesAPIData []struct {
-	ID              string    `json:"id"`
-	Role            string    `json:"role"`
-	TailnetID       int64     `json:"tailnetId"`
-	InviterID       int64     `json:"inviterId"`
-	Email           string    `json:"email"`
-	LastEmailSentAt time.Time `json:"lastEmailSentAt"`
-	InviteURL       string    `json:"inviteUrl"`
+	ID              string    `json:"id,omitempty"`
+	Role            string    `json:"role,omitempty"`
+	TailnetID       int64     `json:"tailnetId,omitempty"`
+	InviterID       int64     `json:"inviterId,omitempty"`
+	Email           string    `json:"email,omitempty"`
+	LastEmailSentAt time.Time `json:"lastEmailSentAt,omitempty"`
+	InviteURL       string    `json:"inviteUrl,omitempty"`
 }

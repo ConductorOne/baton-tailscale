@@ -3,7 +3,6 @@ package connector
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -19,22 +18,6 @@ type userBuilder struct {
 
 func (u *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return u.resourceType
-}
-
-// splitFullName returns firstName and lastName.
-func splitFullName(name string) (string, string) {
-	names := strings.SplitN(name, " ", 2)
-	var firstName, lastName string
-
-	switch len(names) {
-	case 1:
-		firstName = names[0]
-	case 2:
-		firstName = names[0]
-		lastName = names[1]
-	}
-
-	return firstName, lastName
 }
 
 func userResource(ctx context.Context, user *client.User, parentResourceID *v2.ResourceId) (*v2.Resource, error) {

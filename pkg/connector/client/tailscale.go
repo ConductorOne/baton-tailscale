@@ -24,9 +24,11 @@ type Client struct {
 	wrapper *uhttp.BaseHttpClient
 }
 
-// GET - https://api.tailscale.com/api/v2/tailnet/example.com/users"
-// GET - https://api.tailscale.com/api/v2/tailnet/example.com/devices
-// GET - https://api.tailscale.com/api/v2/tailnet/example.com/user-invites
+// https://tailscale.com/api#tag/users
+// GET - https://api.tailscale.com/api/v2/tailnet/__TAILNETID__/users"
+// GET - https://api.tailscale.com/api/v2/tailnet/__TAILNETID__/devices
+// GET - https://api.tailscale.com/api/v2/tailnet/__TAILNETID__/user-invites
+// POST - https://api.tailscale.com/api/v2/users/__USERID__/role
 
 // New creates a new client.
 func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
@@ -421,6 +423,8 @@ func (c *Client) GetDevices(ctx context.Context) ([]Device, error) {
 	return deviceData.Devices, nil
 }
 
+// UpdateUserRole. Updates user-roles
+// https://tailscale.com/api#tag/users/POST/users/{userId}/role
 func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) (bool, error) {
 	var (
 		body struct {
