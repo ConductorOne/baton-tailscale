@@ -98,7 +98,7 @@ func TestGetUserInvites(t *testing.T) {
 	require.NotNil(t, res)
 }
 
-func TestAddUserRole(t *testing.T) {
+func TestUpdateUserRole(t *testing.T) {
 	if apiKey == "" && tailnet == "" {
 		t.Skip()
 	}
