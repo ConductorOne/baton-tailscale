@@ -49,7 +49,7 @@ func deviceResource(ctx context.Context, device *client.Device, parentResourceID
 
 func (d *deviceBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
-	devices, err := d.client.GetDevices(ctx)
+	devices, _, err := d.client.GetDevices(ctx)
 	if err != nil {
 		return nil, "", nil, err
 	}

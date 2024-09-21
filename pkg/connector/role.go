@@ -7,6 +7,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
+	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-tailscale/pkg/connector/client"
@@ -72,22 +73,20 @@ func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 
 func (r *roleBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
 	return []*v2.Entitlement{
-		{
-			Id:          fmt.Sprintf("role:%s:members", resource.Id.Resource),
-			Resource:    resource,
-			DisplayName: fmt.Sprintf("%s Role Member", resource.DisplayName),
-			Description: fmt.Sprintf("Member of %s Role", resource.DisplayName),
-			GrantableTo: []*v2.ResourceType{userResourceType, groupResourceType},
-			Purpose:     v2.Entitlement_PURPOSE_VALUE_ASSIGNMENT,
-			Slug:        "member",
-		},
+		ent.NewAssignmentEntitlement(
+			resource,
+			"member",
+			ent.WithGrantableTo(userResourceType),
+			ent.WithDisplayName(fmt.Sprintf("%s Role Member", resource.DisplayName)),
+			ent.WithDescription(fmt.Sprintf("Member of %s Role", resource.DisplayName)),
+		),
 	}, "", nil, nil
 }
 
 func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	var rv []*v2.Grant
 	roleName := resource.Id.Resource
-	users, err := r.client.GetUsers(ctx)
+	users, _, err := r.client.GetUsers(ctx)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -98,7 +97,7 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 		}
 
 		principalID := &v2.ResourceId{ResourceType: userResourceType.Id, Resource: user.ID}
-		gr := grant.NewGrant(resource, "members", principalID)
+		gr := grant.NewGrant(resource, "member", principalID)
 		rv = append(rv, gr)
 	}
 
@@ -124,7 +123,7 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 	}
 
 	if isOk {
-		l.Warn("Role Membership has been created.",
+		l.Info("Role Membership has been created.",
 			zap.String("userID", userID),
 			zap.String("roleName", roleName),
 		)
@@ -156,7 +155,7 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 	}
 
 	if isOk {
-		l.Warn("Role Membership has been revoked.",
+		l.Info("Role Membership has been revoked.",
 			zap.String("userID", userID),
 			zap.String("roleName", roleName),
 		)

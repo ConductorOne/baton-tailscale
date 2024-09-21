@@ -86,7 +86,7 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 
 	switch bag.ResourceTypeID() {
 	case userResourceType.Id:
-		users, err := u.client.GetUsers(ctx)
+		users, _, err := u.client.GetUsers(ctx)
 		if err != nil {
 			return nil, "", nil, err
 		}
@@ -105,9 +105,8 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 
 			rv = append(rv, ur)
 		}
-
 	case inviteResourceType.Id:
-		userInvites, err := u.client.GetUserInvites(ctx)
+		userInvites, _, err := u.client.GetUserInvites(ctx)
 		if err != nil {
 			return nil, "", nil, err
 		}

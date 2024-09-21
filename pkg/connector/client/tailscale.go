@@ -20,11 +20,11 @@ const userAgent = "ConductorOne/tailscale-connector-0.2.0"
 type Client struct {
 	apiKey  string
 	tailnet string
-	baseUrl string
+	baseUrl *url.URL
 	wrapper *uhttp.BaseHttpClient
 }
 
-// https://tailscale.com/api#tag/users
+// Documenting api calls
 // GET - https://api.tailscale.com/api/v2/tailnet/__TAILNETID__/users"
 // GET - https://api.tailscale.com/api/v2/tailnet/__TAILNETID__/devices
 // GET - https://api.tailscale.com/api/v2/tailnet/__TAILNETID__/user-invites
@@ -45,10 +45,15 @@ func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
 		return nil, err
 	}
 
+	url, err := url.Parse(baseUrl)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		apiKey:  apiKey,
 		tailnet: tailnet,
-		baseUrl: "https://api.tailscale.com/api/v2",
+		baseUrl: url,
 		wrapper: wrapper,
 	}, nil
 }
@@ -321,24 +326,11 @@ func WithAuthorizationBearerHeader(token string) uhttp.RequestOption {
 	return uhttp.WithHeader("Authorization", "Bearer "+token)
 }
 
-// GetUsers. Get all users. Only authenticated users may call this resource.
-// https://tailscale.com/api#tag/users/GET/tailnet/{tailnet}/users
-// The Tailscale API does not currently support pagination. All results are returned at once.
-func (c *Client) GetUsers(ctx context.Context) ([]User, error) {
-	var userData UsersAPIData
-	endpointUrl, err := url.JoinPath(c.baseUrl, "tailnet", c.tailnet, "users")
-	if err != nil {
-		return nil, err
-	}
-
-	uri, err := url.Parse(endpointUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := c.wrapper.NewRequest(ctx,
+func (c *Client) doRequest(ctx context.Context, path string, target interface{}) (*v2.RateLimitDescription, error) {
+	request, err := c.wrapper.NewRequest(
+		ctx,
 		http.MethodGet,
-		uri,
+		c.baseUrl.JoinPath(path),
 		uhttp.WithAcceptJSONHeader(),
 		WithAuthorizationBearerHeader(c.apiKey),
 	)
@@ -346,81 +338,72 @@ func (c *Client) GetUsers(ctx context.Context) ([]User, error) {
 		return nil, err
 	}
 
-	resp, err := c.wrapper.Do(req, uhttp.WithJSONResponse(&userData))
+	var ratelimitData v2.RateLimitDescription
+	response, err := c.wrapper.Do(
+		request,
+		uhttp.WithJSONResponse(&target),
+		uhttp.WithRatelimitData(&ratelimitData),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-	return userData.Users, nil
+	defer response.Body.Close()
+	return &ratelimitData, nil
+}
+
+// GetUsers. Get all users. Only authenticated users may call this resource.
+// https://tailscale.com/api#tag/users/GET/tailnet/{tailnet}/users
+// The Tailscale API does not currently support pagination. All results are returned at once.
+func (c *Client) GetUsers(ctx context.Context) ([]User, *v2.RateLimitDescription, error) {
+	var userData UsersAPIData
+	endpointUrl, err := url.JoinPath("tailnet", c.tailnet, "users")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ratelimitData, err := c.doRequest(ctx, endpointUrl, &userData)
+	if err != nil {
+		return nil, ratelimitData, err
+	}
+
+	return userData.Users, ratelimitData, nil
 }
 
 // GetUserInvites. Get all users invites. Only authenticated users may call this resource.
 // https://tailscale.com/api#tag/userinvites/GET/tailnet/{tailnet}/user-invites
 // The Tailscale API does not currently support pagination. All results are returned at once.
-func (c *Client) GetUserInvites(ctx context.Context) (UserInvitesAPIData, error) {
+func (c *Client) GetUserInvites(ctx context.Context) (UserInvitesAPIData, *v2.RateLimitDescription, error) {
 	var userInviteData UserInvitesAPIData
-	endpointUrl, err := url.JoinPath(c.baseUrl, "tailnet", c.tailnet, "user-invites")
+	endpointUrl, err := url.JoinPath("tailnet", c.tailnet, "user-invites")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	uri, err := url.Parse(endpointUrl)
+	ratelimitData, err := c.doRequest(ctx, endpointUrl, &userInviteData)
 	if err != nil {
-		return nil, err
+		return nil, ratelimitData, err
 	}
 
-	req, err := c.wrapper.NewRequest(ctx,
-		http.MethodGet,
-		uri,
-		uhttp.WithAcceptJSONHeader(),
-		WithAuthorizationBearerHeader(c.apiKey),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.wrapper.Do(req, uhttp.WithJSONResponse(&userInviteData))
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	return userInviteData, nil
+	return userInviteData, ratelimitData, nil
 }
 
 // GetDevices. Get all devices. Only authenticated users may call this resource.
 // https://tailscale.com/api#tag/devices/GET/tailnet/{tailnet}/devices
 // The Tailscale API does not currently support pagination. All results are returned at once.
-func (c *Client) GetDevices(ctx context.Context) ([]Device, error) {
+func (c *Client) GetDevices(ctx context.Context) ([]Device, *v2.RateLimitDescription, error) {
 	var deviceData DevicesAPIData
-	endpointUrl, err := url.JoinPath(c.baseUrl, "tailnet", c.tailnet, "devices")
+	endpointUrl, err := url.JoinPath("tailnet", c.tailnet, "devices")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	uri, err := url.Parse(endpointUrl)
+	ratelimitData, err := c.doRequest(ctx, endpointUrl, &deviceData)
 	if err != nil {
-		return nil, err
+		return nil, ratelimitData, err
 	}
 
-	req, err := c.wrapper.NewRequest(ctx,
-		http.MethodGet,
-		uri,
-		uhttp.WithAcceptJSONHeader(),
-		WithAuthorizationBearerHeader(c.apiKey),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.wrapper.Do(req, uhttp.WithJSONResponse(&deviceData))
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	return deviceData.Devices, nil
+	return deviceData.Devices, ratelimitData, nil
 }
 
 // UpdateUserRole. Updates user-roles
@@ -433,7 +416,7 @@ func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) (b
 		payload = []byte(fmt.Sprintf(`{"role": "%s"}`, roleName))
 	)
 
-	endpointUrl, err := url.JoinPath(c.baseUrl, "users", userId, "role")
+	endpointUrl, err := url.JoinPath(c.baseUrl.String(), "users", userId, "role")
 	if err != nil {
 		return false, err
 	}

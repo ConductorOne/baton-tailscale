@@ -93,7 +93,7 @@ func TestGetUserInvites(t *testing.T) {
 	u := &userBuilder{
 		client: cliTest,
 	}
-	res, err := u.client.GetUserInvites(ctxTest)
+	res, _, err := u.client.GetUserInvites(ctxTest)
 	require.Nil(t, err)
 	require.NotNil(t, res)
 }
@@ -123,8 +123,8 @@ func TestRoleGrant(t *testing.T) {
 	cliTest, err := getClientForTesting(ctxTest, apiKey, tailnet)
 	require.Nil(t, err)
 
-	// --grant-entitlement role:billing-admin:members
-	grantEntitlement := "role:billing-admin:members"
+	// --grant-entitlement role:billing-admin:member
+	grantEntitlement := "role:billing-admin:member"
 	// --grant-principal-type user
 	grantPrincipalType := "user"
 	// --grant-principal uYmTSnEi9711CNTRL
@@ -162,12 +162,12 @@ func TestRoleRevoke(t *testing.T) {
 	resource, err := getRoleResourceForTesting(ctxTest)
 	require.Nil(t, err)
 
-	gr := grant.NewGrant(resource, "members", principalID)
+	gr := grant.NewGrant(resource, "member", principalID)
 	annos := annotations.Annotations(gr.Annotations)
 	gr.Annotations = annos
 	require.NotNil(t, gr)
 
-	// --revoke-grant "role:billing-admin:members:user:uYmTSnEi9711CNTRL"
+	// --revoke-grant "role:billing-admin:member:user:uYmTSnEi9711CNTRL"
 	r := &roleBuilder{
 		client: cliTest,
 	}
