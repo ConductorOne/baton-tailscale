@@ -109,9 +109,8 @@ func TestUpdateUserRole(t *testing.T) {
 	u := &userBuilder{
 		client: cliTest,
 	}
-	res, err := u.client.UpdateUserRole(ctxTest, "uYmTSnEi9711CNTRL", "billing-admin")
+	err = u.client.UpdateUserRole(ctxTest, "uYmTSnEi9711CNTRL", "billing-admin")
 	require.Nil(t, err)
-	require.NotNil(t, res)
 }
 
 func TestRoleGrant(t *testing.T) {

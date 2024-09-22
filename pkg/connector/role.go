@@ -117,17 +117,15 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 
 	userID := principal.Id.Resource
 	roleName := entitlement.Resource.Id.Resource
-	isOk, err := r.client.UpdateUserRole(ctx, userID, roleName)
+	err := r.client.UpdateUserRole(ctx, userID, roleName)
 	if err != nil {
 		return nil, fmt.Errorf("tailscale-connector: failed to add user role: %s", err.Error())
 	}
 
-	if isOk {
-		l.Info("Role Membership has been created.",
-			zap.String("userID", userID),
-			zap.String("roleName", roleName),
-		)
-	}
+	l.Info("Role Membership has been created.",
+		zap.String("userID", userID),
+		zap.String("roleName", roleName),
+	)
 
 	return nil, nil
 }
@@ -149,17 +147,15 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 	userID := principal.Id.Resource
 	roleName := entitlement.Resource.Id.Resource
 	// users on a tailnet are members by default.
-	isOk, err := r.client.UpdateUserRole(ctx, userID, "member")
+	err := r.client.UpdateUserRole(ctx, userID, "member")
 	if err != nil {
 		return nil, fmt.Errorf("tailscale-connector: failed to revoke user role: %s", err.Error())
 	}
 
-	if isOk {
-		l.Info("Role Membership has been revoked.",
-			zap.String("userID", userID),
-			zap.String("roleName", roleName),
-		)
-	}
+	l.Info("Role Membership has been revoked.",
+		zap.String("userID", userID),
+		zap.String("roleName", roleName),
+	)
 
 	return nil, nil
 }

@@ -408,7 +408,7 @@ func (c *Client) GetDevices(ctx context.Context) ([]Device, *v2.RateLimitDescrip
 
 // UpdateUserRole. Updates user-roles
 // https://tailscale.com/api#tag/users/POST/users/{userId}/role
-func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) (bool, error) {
+func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) error {
 	var (
 		body struct {
 			Role string `json:"role"`
@@ -418,17 +418,17 @@ func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) (b
 
 	endpointUrl, err := url.JoinPath(c.baseUrl.String(), "users", userId, "role")
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	uri, err := url.Parse(endpointUrl)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	err = json.Unmarshal(payload, &body)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	req, err := c.wrapper.NewRequest(ctx,
@@ -439,14 +439,14 @@ func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) (b
 		uhttp.WithJSONBody(body),
 	)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	resp, err := c.wrapper.Do(req)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK, nil
+	return nil
 }
