@@ -22,7 +22,7 @@ func (u *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 
 func userResource(ctx context.Context, user *client.User, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
-	firstName, lastName := splitFullName(user.DisplayName)
+	firstName, lastName := rs.SplitFullName(user.DisplayName)
 	profile := map[string]interface{}{
 		"login":       user.LoginName,
 		"first_name":  firstName,
