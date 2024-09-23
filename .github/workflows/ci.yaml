@@ -49,7 +49,7 @@ jobs:
       BATON_ENTITLEMENT: 'role:billing-admin:member'
       BATON_PRINCIPAL_TYPE: 'user'
       BATON_PRINCIPAL: 'uYmTSnEi9711CNTRL'
-      BATON: ./baton
+      BATON: baton
       BATON_TAILSCALE: ./baton-tailscale
     steps:
       - name: Install Go
