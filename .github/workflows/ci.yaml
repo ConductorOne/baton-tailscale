@@ -45,10 +45,10 @@ jobs:
       BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
       BATON_TAILNET: ${{ secrets.BATON_TAILNET }}
       # The following parameters are passed to grant/revoke commands
-      CONNECTOR_GRANT: 'role:billing-admin:member:user:uYmTSnEi9711CNTRL'
-      CONNECTOR_ENTITLEMENT: 'role:billing-admin:member'
-      CONNECTOR_PRINCIPAL_TYPE: 'user'
-      CONNECTOR_PRINCIPAL: 'uYmTSnEi9711CNTRL'
+      BATON_GRANT: 'role:billing-admin:member:user:uYmTSnEi9711CNTRL'
+      BATON_ENTITLEMENT: 'role:billing-admin:member'
+      BATON_PRINCIPAL_TYPE: 'user'
+      BATON_PRINCIPAL: 'uYmTSnEi9711CNTRL'
       BATON: ./baton/baton
       BATON_TAILSCALE: ./baton-tailscale
     steps:
