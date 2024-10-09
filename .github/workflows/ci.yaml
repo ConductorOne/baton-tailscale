@@ -50,6 +50,7 @@ jobs:
       BATON_PRINCIPAL_TYPE: 'user'
       BATON_PRINCIPAL: 'uYmTSnEi9711CNTRL'
       BATON: baton
+      BATON_TAILSCALE: ./baton-tailscale
     steps:
       - name: Install Go
         uses: actions/setup-go@v4
