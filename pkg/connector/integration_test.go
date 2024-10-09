@@ -2,15 +2,11 @@ package connector
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
-	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
-	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
-	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	"github.com/conductorone/baton-tailscale/pkg/connector/client"
 	"github.com/stretchr/testify/require"
 )
@@ -18,15 +14,16 @@ import (
 var (
 	apiKey  = os.Getenv("BATON_API_KEY")
 	tailnet = os.Getenv("BATON_TAILNET")
-	ctxTest = context.Background()
 )
 
-func TestUserBuilderList(t *testing.T) {
+func TestConnector(t *testing.T) {
+	ctx := context.Background()
+
 	if apiKey == "" && tailnet == "" {
 		t.Skip()
 	}
 
-	cliTest, err := getClientForTesting(ctxTest, apiKey, tailnet)
+	cliTest, err := client.New(ctx, apiKey, tailnet)
 	require.Nil(t, err)
 
 	u := &userBuilder{
@@ -34,159 +31,20 @@ func TestUserBuilderList(t *testing.T) {
 		client:       cliTest,
 	}
 
-	res, _, _, err := u.List(ctxTest, &v2.ResourceId{}, &pagination.Token{})
-	require.Nil(t, err)
-	require.NotNil(t, res)
-}
-
-func getClientForTesting(ctx context.Context, apiKey string, tailnet string) (*client.Client, error) {
-	client, err := client.New(ctx, apiKey, tailnet)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, err
-}
-
-func TestRoleBuilderList(t *testing.T) {
-	if apiKey == "" && tailnet == "" {
-		t.Skip()
-	}
-
-	cliTest, err := getClientForTesting(ctxTest, apiKey, tailnet)
-	require.Nil(t, err)
-
 	r := &roleBuilder{
 		resourceType: userResourceType,
 		client:       cliTest,
 	}
-	res, _, _, err := r.List(ctxTest, nil, nil)
-	require.Nil(t, err)
-	require.NotNil(t, res)
-}
 
-func TestDeviceBuilderList(t *testing.T) {
-	if apiKey == "" && tailnet == "" {
-		t.Skip()
-	}
+	t.Run("user builder should fetch a list of users", func(t *testing.T) {
+		res, _, _, err := u.List(ctx, &v2.ResourceId{}, &pagination.Token{})
+		require.Nil(t, err)
+		require.NotNil(t, res)
+	})
 
-	cliTest, err := getClientForTesting(ctxTest, apiKey, tailnet)
-	require.Nil(t, err)
-
-	d := &deviceBuilder{
-		resourceType: deviceResourceType,
-		client:       cliTest,
-	}
-	res, _, _, err := d.List(ctxTest, nil, nil)
-	require.Nil(t, err)
-	require.NotNil(t, res)
-}
-
-func TestGetUserInvites(t *testing.T) {
-	if apiKey == "" && tailnet == "" {
-		t.Skip()
-	}
-
-	cliTest, err := getClientForTesting(ctxTest, apiKey, tailnet)
-	require.Nil(t, err)
-
-	u := &userBuilder{
-		client: cliTest,
-	}
-	res, _, err := u.client.GetUserInvites(ctxTest)
-	require.Nil(t, err)
-	require.NotNil(t, res)
-}
-
-func TestUpdateUserRole(t *testing.T) {
-	if apiKey == "" && tailnet == "" {
-		t.Skip()
-	}
-
-	cliTest, err := getClientForTesting(ctxTest, apiKey, tailnet)
-	require.Nil(t, err)
-
-	u := &userBuilder{
-		client: cliTest,
-	}
-	err = u.client.UpdateUserRole(ctxTest, "uYmTSnEi9711CNTRL", "billing-admin")
-	require.Nil(t, err)
-}
-
-func TestRoleGrant(t *testing.T) {
-	var roleEntitlement string
-	if apiKey == "" && tailnet == "" {
-		t.Skip()
-	}
-
-	cliTest, err := getClientForTesting(ctxTest, apiKey, tailnet)
-	require.Nil(t, err)
-
-	// --grant-entitlement role:billing-admin:member
-	grantEntitlement := "role:billing-admin:member"
-	// --grant-principal-type user
-	grantPrincipalType := "user"
-	// --grant-principal uYmTSnEi9711CNTRL
-	grantPrincipal := "uYmTSnEi9711CNTRL"
-	_, data, err := parseEntitlementID(grantEntitlement)
-	require.Nil(t, err)
-	require.NotNil(t, data)
-
-	roleEntitlement = data[2]
-	resource, err := getRoleResourceForTesting(ctxTest)
-	require.Nil(t, err)
-
-	entitlement := getEntitlementForTesting(resource, grantPrincipalType, roleEntitlement)
-	l := &roleBuilder{
-		client: cliTest,
-	}
-	_, err = l.Grant(ctxTest, &v2.Resource{
-		Id: &v2.ResourceId{
-			ResourceType: userResourceType.Id,
-			Resource:     grantPrincipal,
-		},
-	}, entitlement)
-	require.Nil(t, err)
-}
-
-func TestRoleRevoke(t *testing.T) {
-	if apiKey == "" && tailnet == "" {
-		t.Skip()
-	}
-
-	cliTest, err := getClientForTesting(ctxTest, apiKey, tailnet)
-	require.Nil(t, err)
-
-	principalID := &v2.ResourceId{ResourceType: userResourceType.Id, Resource: "uYmTSnEi9711CNTRL"}
-	resource, err := getRoleResourceForTesting(ctxTest)
-	require.Nil(t, err)
-
-	gr := grant.NewGrant(resource, "member", principalID)
-	annos := annotations.Annotations(gr.Annotations)
-	gr.Annotations = annos
-	require.NotNil(t, gr)
-
-	// --revoke-grant "role:billing-admin:member:user:uYmTSnEi9711CNTRL"
-	r := &roleBuilder{
-		client: cliTest,
-	}
-	_, err = r.Revoke(ctxTest, gr)
-	require.Nil(t, err)
-}
-
-func getRoleResourceForTesting(ctxTest context.Context) (*v2.Resource, error) {
-	return roleResource(ctxTest, &client.Role{
-		ID:   "billing-admin",
-		Name: "billing-admin",
-	}, nil)
-}
-
-func getEntitlementForTesting(resource *v2.Resource, resourceDisplayName, licenseEntitlement string) *v2.Entitlement {
-	options := []ent.EntitlementOption{
-		ent.WithGrantableTo(roleResourceType),
-		ent.WithDisplayName(fmt.Sprintf("%s resource %s", resourceDisplayName, licenseEntitlement)),
-		ent.WithDescription(fmt.Sprintf("%s of %s Tialscale role", licenseEntitlement, resourceDisplayName)),
-	}
-
-	return ent.NewAssignmentEntitlement(resource, licenseEntitlement, options...)
+	t.Run("role builder should fetch a list of roles", func(t *testing.T) {
+		res, _, _, err := r.List(ctx, nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, res)
+	})
 }

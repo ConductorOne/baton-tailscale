@@ -20,31 +20,23 @@ func (d *deviceBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 }
 
 func deviceResource(ctx context.Context, device *client.Device, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	var opts []rs.ResourceOption
-	profile := map[string]interface{}{
-		"device_id":   device.ID,
-		"device_name": device.Name,
-		"login":       device.User,
-		"email":       device.User,
-		"authorized":  device.Authorized,
-	}
-
-	deviceTraitOptions := []rs.AppTraitOption{
-		rs.WithAppProfile(profile),
-	}
-
-	opts = append(opts, rs.WithAppTrait(deviceTraitOptions...))
-	ret, err := rs.NewResource(
+	return rs.NewResource(
 		device.Name,
 		deviceResourceType,
 		device.ID,
-		opts...,
+		rs.WithParentResourceID(parentResourceID),
+		rs.WithAppTrait(
+			rs.WithAppProfile(
+				map[string]interface{}{
+					"device_id":   device.ID,
+					"device_name": device.Name,
+					"login":       device.User,
+					"email":       device.User,
+					"authorized":  device.Authorized,
+				},
+			),
+		),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return ret, nil
 }
 
 func (d *deviceBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {

@@ -4,7 +4,7 @@ set -exo pipefail
 
  # CI test for use with CI Tailscale account
 if [ -z "$BATON_TAILSCALE" ]; then
-  echo "BATON_TAILSCALE not set. using baton-talescale"
+  echo "BATON_TAILSCALE not set. using baton-tailscale"
   BATON_TAILSCALE=baton-tailscale
 fi
 if [ -z "$BATON" ]; then
