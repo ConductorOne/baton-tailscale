@@ -2,7 +2,10 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -12,24 +15,26 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	userAgent = "ConductorOne/tailscale-connector-0.2.0"
-)
+const userAgent = "ConductorOne/tailscale-connector-0.2.0"
 
 type Client struct {
 	apiKey  string
 	tailnet string
+	baseUrl *url.URL
 	wrapper *uhttp.BaseHttpClient
 }
+
+// Documenting api calls
+// GET - https://api.tailscale.com/api/v2/tailnet/__TAILNETID__/users"
+// GET - https://api.tailscale.com/api/v2/tailnet/__TAILNETID__/devices
+// GET - https://api.tailscale.com/api/v2/tailnet/__TAILNETID__/user-invites
+// POST - https://api.tailscale.com/api/v2/users/__USERID__/role
 
 // New creates a new client.
 func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
 	httpClient, err := uhttp.NewClient(
 		ctx,
-		uhttp.WithLogger(
-			true,
-			ctxzap.Extract(ctx),
-		),
+		uhttp.WithLogger(true, ctxzap.Extract(ctx)),
 		uhttp.WithUserAgent(userAgent),
 	)
 	if err != nil {
@@ -40,22 +45,25 @@ func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
 		return nil, err
 	}
 
+	url, err := url.Parse(baseUrl)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		apiKey:  apiKey,
 		tailnet: tailnet,
+		baseUrl: url,
 		wrapper: wrapper,
 	}, nil
 }
 
-func (c *Client) ListGroups(ctx context.Context) (
-	[]Resource,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListGroups(ctx context.Context) ([]Resource, *v2.RateLimitDescription, error) {
 	response, _, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return nil, ratelimitData, err
 	}
+
 	groupNames := utils.Unique(
 		utils.Convert(
 			utils.GetPatternFromHujson(
@@ -83,15 +91,7 @@ func (c *Client) ListGroups(ctx context.Context) (
 	return groups, ratelimitData, nil
 }
 
-func (c *Client) AddEmailToGroup(
-	ctx context.Context,
-	groupName string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) AddEmailToGroup(ctx context.Context, groupName string, email string) (bool, *v2.RateLimitDescription, error) {
 	response, etag, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return false, ratelimitData, err
@@ -108,20 +108,12 @@ func (c *Client) AddEmailToGroup(
 
 	response.Format()
 	postBody := strings.NewReader(response.String())
-
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
+
 	return true, ratelimitData, err
 }
 
-func (c *Client) RemoveEmailFromGroup(
-	ctx context.Context,
-	groupName string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) RemoveEmailFromGroup(ctx context.Context, groupName string, email string) (bool, *v2.RateLimitDescription, error) {
 	response, etag, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return false, ratelimitData, err
@@ -138,8 +130,8 @@ func (c *Client) RemoveEmailFromGroup(
 
 	response.Format()
 	postBody := strings.NewReader(response.String())
-
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
+
 	return true, ratelimitData, err
 }
 
@@ -171,32 +163,16 @@ func (c *Client) addEmailToRule(
 
 	response.Format()
 	postBody := strings.NewReader(response.String())
-
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
+
 	return true, ratelimitData, err
 }
 
-func (c *Client) AddEmailToSSHRule(
-	ctx context.Context,
-	ruleHash string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) AddEmailToSSHRule(ctx context.Context, ruleHash string, email string) (bool, *v2.RateLimitDescription, error) {
 	return c.addEmailToRule(ctx, ruleHash, RuleKeySSH, "ssh", email)
 }
 
-func (c *Client) AddEmailToACLRule(
-	ctx context.Context,
-	ruleHash string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) AddEmailToACLRule(ctx context.Context, ruleHash string, email string) (bool, *v2.RateLimitDescription, error) {
 	return c.addEmailToRule(ctx, ruleHash, RuleKeyACLs, "acl", email)
 }
 
@@ -228,43 +204,20 @@ func (c *Client) removeEmailFromRule(
 
 	response.Format()
 	postBody := strings.NewReader(response.String())
-
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
+
 	return true, ratelimitData, err
 }
 
-func (c *Client) RemoveEmailFromSSHRule(
-	ctx context.Context,
-	ruleHash string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) RemoveEmailFromSSHRule(ctx context.Context, ruleHash string, email string) (bool, *v2.RateLimitDescription, error) {
 	return c.removeEmailFromRule(ctx, ruleHash, RuleKeySSH, "ssh", email)
 }
 
-func (c *Client) RemoveEmailFromACLRule(
-	ctx context.Context,
-	ruleHash string,
-	email string,
-) (
-	bool,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) RemoveEmailFromACLRule(ctx context.Context, ruleHash string, email string) (bool, *v2.RateLimitDescription, error) {
 	return c.removeEmailFromRule(ctx, ruleHash, RuleKeyACLs, "acl", email)
 }
 
-func (c *Client) ListGroupMemberships(
-	ctx context.Context,
-	groupName string,
-) (
-	[]string,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListGroupMemberships(ctx context.Context, groupName string) ([]string, *v2.RateLimitDescription, error) {
 	response, _, ratelimitData, err := c.get(ctx)
 	if err != nil {
 		return nil, ratelimitData, err
@@ -276,15 +229,7 @@ func (c *Client) ListGroupMemberships(
 	return emails, ratelimitData, nil
 }
 
-func (c *Client) listRules(
-	ctx context.Context,
-	key ruleKey,
-	idPrefix string,
-) (
-	[]Resource,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) listRules(ctx context.Context, key ruleKey, idPrefix string) ([]Resource, *v2.RateLimitDescription, error) {
 	logger := ctxzap.Extract(ctx)
 	logger.Debug(
 		"listRules",
@@ -296,6 +241,7 @@ func (c *Client) listRules(
 	if err != nil {
 		return nil, ratelimitData, err
 	}
+
 	rules, err := GetRulesFromHujson(target.Value, key)
 	if err != nil {
 		return nil, nil, err
@@ -315,22 +261,15 @@ func (c *Client) listRules(
 		}
 		output = append(output, newResource)
 	}
+
 	return output, ratelimitData, nil
 }
 
-func (c *Client) ListSSHRules(ctx context.Context) (
-	[]Resource,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListSSHRules(ctx context.Context) ([]Resource, *v2.RateLimitDescription, error) {
 	return c.listRules(ctx, "ssh", "ssh")
 }
 
-func (c *Client) ListACLRules(ctx context.Context) (
-	[]Resource,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListACLRules(ctx context.Context) ([]Resource, *v2.RateLimitDescription, error) {
 	return c.listRules(ctx, "acls", "acl")
 }
 
@@ -348,6 +287,7 @@ func (c *Client) listRuleEmails(
 	if err != nil {
 		return nil, ratelimitData, err
 	}
+
 	rules, err := GetRulesFromHujson(response.Value, key)
 	if err != nil {
 		return nil, nil, err
@@ -370,21 +310,143 @@ func (c *Client) listRuleEmails(
 			}
 		}
 	}
+
 	return emails, ratelimitData, nil
 }
 
-func (c *Client) ListSSHEmails(ctx context.Context, ruleId string) (
-	[]string,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListSSHEmails(ctx context.Context, ruleId string) ([]string, *v2.RateLimitDescription, error) {
 	return c.listRuleEmails(ctx, ruleId, "ssh", "ssh")
 }
 
-func (c *Client) ListACLEmails(ctx context.Context, ruleId string) (
-	[]string,
-	*v2.RateLimitDescription,
-	error,
-) {
+func (c *Client) ListACLEmails(ctx context.Context, ruleId string) ([]string, *v2.RateLimitDescription, error) {
 	return c.listRuleEmails(ctx, ruleId, "acls", "acl")
+}
+
+func WithAuthorizationBearerHeader(token string) uhttp.RequestOption {
+	return uhttp.WithHeader("Authorization", "Bearer "+token)
+}
+
+func (c *Client) doRequest(ctx context.Context, path string, target interface{}) (*v2.RateLimitDescription, error) {
+	request, err := c.wrapper.NewRequest(
+		ctx,
+		http.MethodGet,
+		c.baseUrl.JoinPath(path),
+		uhttp.WithAcceptJSONHeader(),
+		WithAuthorizationBearerHeader(c.apiKey),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var ratelimitData v2.RateLimitDescription
+	response, err := c.wrapper.Do(
+		request,
+		uhttp.WithJSONResponse(&target),
+		uhttp.WithRatelimitData(&ratelimitData),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	defer response.Body.Close()
+	return &ratelimitData, nil
+}
+
+// GetUsers. Get all users. Only authenticated users may call this resource.
+// https://tailscale.com/api#tag/users/GET/tailnet/{tailnet}/users
+// The Tailscale API does not currently support pagination. All results are returned at once.
+func (c *Client) GetUsers(ctx context.Context) ([]User, *v2.RateLimitDescription, error) {
+	var userData UsersAPIData
+	endpointUrl, err := url.JoinPath("tailnet", c.tailnet, "users")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ratelimitData, err := c.doRequest(ctx, endpointUrl, &userData)
+	if err != nil {
+		return nil, ratelimitData, err
+	}
+
+	return userData.Users, ratelimitData, nil
+}
+
+// GetUserInvites. Get all users invites. Only authenticated users may call this resource.
+// https://tailscale.com/api#tag/userinvites/GET/tailnet/{tailnet}/user-invites
+// The Tailscale API does not currently support pagination. All results are returned at once.
+func (c *Client) GetUserInvites(ctx context.Context) (UserInvitesAPIData, *v2.RateLimitDescription, error) {
+	var userInviteData UserInvitesAPIData
+	endpointUrl, err := url.JoinPath("tailnet", c.tailnet, "user-invites")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ratelimitData, err := c.doRequest(ctx, endpointUrl, &userInviteData)
+	if err != nil {
+		return nil, ratelimitData, err
+	}
+
+	return userInviteData, ratelimitData, nil
+}
+
+// GetDevices. Get all devices. Only authenticated users may call this resource.
+// https://tailscale.com/api#tag/devices/GET/tailnet/{tailnet}/devices
+// The Tailscale API does not currently support pagination. All results are returned at once.
+func (c *Client) GetDevices(ctx context.Context) ([]Device, *v2.RateLimitDescription, error) {
+	var deviceData DevicesAPIData
+	endpointUrl, err := url.JoinPath("tailnet", c.tailnet, "devices")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ratelimitData, err := c.doRequest(ctx, endpointUrl, &deviceData)
+	if err != nil {
+		return nil, ratelimitData, err
+	}
+
+	return deviceData.Devices, ratelimitData, nil
+}
+
+// UpdateUserRole. Updates user-roles
+// https://tailscale.com/api#tag/users/POST/users/{userId}/role
+func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) error {
+	var (
+		body struct {
+			Role string `json:"role"`
+		}
+		payload = []byte(fmt.Sprintf(`{"role": "%s"}`, roleName))
+	)
+
+	endpointUrl, err := url.JoinPath(c.baseUrl.String(), "users", userId, "role")
+	if err != nil {
+		return err
+	}
+
+	uri, err := url.Parse(endpointUrl)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(payload, &body)
+	if err != nil {
+		return err
+	}
+
+	req, err := c.wrapper.NewRequest(ctx,
+		http.MethodPost,
+		uri,
+		uhttp.WithAcceptJSONHeader(),
+		WithAuthorizationBearerHeader(c.apiKey),
+		uhttp.WithJSONBody(body),
+	)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.wrapper.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	return nil
 }
