@@ -7,6 +7,7 @@ import (
 
 	"github.com/conductorone/baton-sdk/pkg/config"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
+	"github.com/conductorone/baton-sdk/pkg/field"
 	"github.com/conductorone/baton-sdk/pkg/types"
 	cfg "github.com/conductorone/baton-tailscale/pkg/config"
 	"github.com/conductorone/baton-tailscale/pkg/connector"
@@ -45,6 +46,11 @@ func main() {
 func getConnector(ctx context.Context, tsc *cfg.Tailscale) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
 
+	err := field.Validate(cfg.Config, tsc)
+	if err != nil {
+		return nil, err
+	}
+
 	cb, err := connector.New(
 		ctx,
 		tsc.ApiKey,
@@ -55,11 +61,11 @@ func getConnector(ctx context.Context, tsc *cfg.Tailscale) (types.ConnectorServe
 		return nil, err
 	}
 
-	connector, err := connectorbuilder.NewConnector(ctx, cb)
+	conn, err := connectorbuilder.NewConnector(ctx, cb)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err
 	}
-	
-	return connector, nil
+
+	return conn, nil
 }
