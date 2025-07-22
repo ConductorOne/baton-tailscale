@@ -10,7 +10,7 @@ import (
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
-	"github.com/conductorone/baton-tailscale/pkg/utils"
+	"github.com/conductorone/baton-tailscale/pkg/connutils"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )
@@ -64,9 +64,9 @@ func (c *Client) ListGroups(ctx context.Context) ([]Resource, *v2.RateLimitDescr
 		return nil, ratelimitData, err
 	}
 
-	groupNames := utils.Unique(
-		utils.Convert(
-			utils.GetPatternFromHujson(
+	groupNames := connutils.Unique(
+		connutils.Convert(
+			connutils.GetPatternFromHujson(
 				response.Value,
 				func(s string) bool {
 					return strings.HasPrefix(s, groupPrefix)
@@ -254,7 +254,7 @@ func (c *Client) listRules(ctx context.Context, key ruleKey, idPrefix string) ([
 			foundRule.GetValueOfNamedMember("ports"),
 			foundRule.GetValueOfNamedMember("dst")...,
 		)
-		name := utils.Truncate(strings.Join(dst, ", "), 64)
+		name := connutils.Truncate(strings.Join(dst, ", "), 64)
 		newResource := Resource{
 			Id:          fmt.Sprintf("%s:%s", idPrefix, foundRule.GetHash()),
 			DisplayName: fmt.Sprintf("%s: %s", action, name),
@@ -300,12 +300,12 @@ func (c *Client) listRuleEmails(
 			continue
 		}
 		for _, email := range foundRule.GetValueOfNamedMember("src") {
-			if utils.IsValidEmail(email) {
+			if connutils.IsValidEmail(email) {
 				emails = append(emails, email)
 			}
 		}
 		for _, email := range foundRule.GetValueOfNamedMember("users") {
-			if utils.IsValidEmail(email) {
+			if connutils.IsValidEmail(email) {
 				emails = append(emails, email)
 			}
 		}

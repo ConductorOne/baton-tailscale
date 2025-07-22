@@ -5,7 +5,7 @@ import (
 	"errors"
 	"slices"
 
-	"github.com/conductorone/baton-tailscale/pkg/utils"
+	"github.com/conductorone/baton-tailscale/pkg/connutils"
 	"github.com/tailscale/hujson"
 )
 
@@ -15,7 +15,7 @@ func GetGroupRulesFromHujson(input hujson.ValueTrimmed, groupName string) ([]str
 		return nil, errors.New("root value was not an object")
 	}
 	for _, member := range rootObj.Members {
-		name, err := utils.GetObjectMemberName(member)
+		name, err := connutils.GetObjectMemberName(member)
 		if err != nil {
 			return nil, err
 		}
@@ -28,7 +28,7 @@ func GetGroupRulesFromHujson(input hujson.ValueTrimmed, groupName string) ([]str
 			return nil, errors.New("groups was not an object")
 		}
 		for _, groupMember := range groupList.Members {
-			name, err = utils.GetObjectMemberName(groupMember)
+			name, err = connutils.GetObjectMemberName(groupMember)
 			if err != nil {
 				return nil, err
 			}
@@ -36,9 +36,9 @@ func GetGroupRulesFromHujson(input hujson.ValueTrimmed, groupName string) ([]str
 				continue
 			}
 
-			return utils.GetPatternFromHujson(
+			return connutils.GetPatternFromHujson(
 				groupMember.Value.Value,
-				utils.IsValidEmail,
+				connutils.IsValidEmail,
 			), nil
 		}
 
@@ -54,7 +54,7 @@ func FindGroupArray(input *hujson.Value, groupName string) (*hujson.Array, error
 		return nil, errors.New("root value was not an object")
 	}
 	for _, member := range rootObj.Members {
-		name, err := utils.GetObjectMemberName(member)
+		name, err := connutils.GetObjectMemberName(member)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +67,7 @@ func FindGroupArray(input *hujson.Value, groupName string) (*hujson.Array, error
 			return nil, errors.New("groups was not an object")
 		}
 		for _, groupMember := range groupList.Members {
-			name, err = utils.GetObjectMemberName(groupMember)
+			name, err = connutils.GetObjectMemberName(groupMember)
 			if err != nil {
 				return nil, err
 			}
@@ -101,7 +101,7 @@ func AddEmailToGroup(
 	}
 	defer input.Format()
 
-	emails := utils.Convert(
+	emails := connutils.Convert(
 		groupUserList.Elements,
 		func(in hujson.Value) string {
 			lit, ok := in.Value.(hujson.Literal)

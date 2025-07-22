@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conductorone/baton-tailscale/pkg/utils"
+	"github.com/conductorone/baton-tailscale/pkg/connutils"
 	"github.com/conductorone/baton-tailscale/test"
 	"github.com/stretchr/testify/require"
 	"github.com/tailscale/hujson"
@@ -15,8 +15,8 @@ func TestGetPatternFromHujson(t *testing.T) {
 	val, err := hujson.Parse([]byte(test.FullJSONExample))
 	require.Nil(t, err)
 
-	emailsGeneric := utils.GetPatternFromHujson(val.Value, utils.IsValidEmail)
-	groupNamesGeneric := utils.GetPatternFromHujson(val.Value, func(s string) bool {
+	emailsGeneric := connutils.GetPatternFromHujson(val.Value, connutils.IsValidEmail)
+	groupNamesGeneric := connutils.GetPatternFromHujson(val.Value, func(s string) bool {
 		return strings.HasPrefix(s, "group:")
 	})
 

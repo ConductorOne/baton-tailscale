@@ -11,7 +11,7 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	resourceSDK "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-tailscale/pkg/connector/client"
-	"github.com/conductorone/baton-tailscale/pkg/utils"
+	"github.com/conductorone/baton-tailscale/pkg/connutils"
 )
 
 const (
@@ -48,7 +48,7 @@ func (o *groupBuilder) List(
 	error,
 ) {
 	groups, ratelimitData, err := o.client.ListGroups(ctx)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return nil, "", outputAnnotations, err
 	}
@@ -157,7 +157,7 @@ func (o *groupBuilder) Grants(
 	}
 
 	emails, ratelimitData, err := o.client.ListGroupMemberships(ctx, resource.Id.Resource)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return nil, "", outputAnnotations, err
 	}
@@ -185,7 +185,7 @@ func (o *groupBuilder) Grant(
 	entitlement *v2.Entitlement,
 ) (annotations.Annotations, error) {
 	wasAdded, ratelimitData, err := o.client.AddEmailToGroup(ctx, entitlement.Id, principal.Id.Resource)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err
 	}
@@ -206,7 +206,7 @@ func (o *groupBuilder) Revoke(
 		grant.Entitlement.Id,
 		grant.Principal.Id.Resource,
 	)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err
 	}
