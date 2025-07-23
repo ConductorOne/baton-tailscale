@@ -1,4 +1,4 @@
-package utils
+package connutils
 
 import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"

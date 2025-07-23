@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conductorone/baton-tailscale/pkg/utils"
+	"github.com/conductorone/baton-tailscale/pkg/connutils"
 	"github.com/conductorone/baton-tailscale/test"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -35,7 +35,7 @@ func (u *HujsonSuite) TestGetRuleFromHujson() {
 	aclRules, err := GetRulesFromHujson(val.Value, RuleKeyACLs)
 	require.Nil(u.T(), err)
 
-	groupNamesGeneric := utils.GetPatternFromHujson(val.Value, func(s string) bool {
+	groupNamesGeneric := connutils.GetPatternFromHujson(val.Value, func(s string) bool {
 		return strings.HasPrefix(s, "group:")
 	})
 

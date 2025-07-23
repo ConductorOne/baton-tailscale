@@ -11,7 +11,7 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	resourceSDK "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-tailscale/pkg/connector/client"
-	"github.com/conductorone/baton-tailscale/pkg/utils"
+	"github.com/conductorone/baton-tailscale/pkg/connutils"
 )
 
 const (
@@ -48,7 +48,7 @@ func (o *groupBuilder) List(
 	error,
 ) {
 	groups, ratelimitData, err := o.client.ListGroups(ctx)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return nil, "", outputAnnotations, err
 	}
@@ -115,6 +115,28 @@ func emailToGrants(resource *v2.Resource, emails []string) []*v2.Grant {
 	return output
 }
 
+func userIDsToGrants(resource *v2.Resource, userIDs []string) []*v2.Grant {
+	output := make([]*v2.Grant, 0)
+	for _, userID := range userIDs {
+		userRes := &v2.Resource{
+			Id: &v2.ResourceId{
+				ResourceType: userResourceType.Id,
+				Resource:     userID,
+			},
+		}
+
+		output = append(
+			output,
+			grant.NewGrant(
+				resource,
+				entitlementName,
+				userRes.Id,
+			),
+		)
+	}
+	return output
+}
+
 func (o *groupBuilder) Grants(
 	ctx context.Context,
 	resource *v2.Resource,
@@ -125,13 +147,35 @@ func (o *groupBuilder) Grants(
 	annotations.Annotations,
 	error,
 ) {
+	var grants []*v2.Grant
+	var userIDs []string
+	var users []client.User
+
+	users, _, err := o.client.GetUsers(ctx)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
 	emails, ratelimitData, err := o.client.ListGroupMemberships(ctx, resource.Id.Resource)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return nil, "", outputAnnotations, err
 	}
 
-	grants := emailToGrants(resource, emails)
+	userInvites, _, err := o.client.GetUserInvites(ctx)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	for _, userInvite := range userInvites {
+		users = append(users, client.User{
+			ID:        userInvite.ID,
+			LoginName: userInvite.Email,
+		})
+	}
+
+	userIDs = GetUserIDsFromUserEmails(users, emails)
+	grants = append(grants, userIDsToGrants(resource, userIDs)...)
+
 	return grants, "", outputAnnotations, nil
 }
 
@@ -141,7 +185,7 @@ func (o *groupBuilder) Grant(
 	entitlement *v2.Entitlement,
 ) (annotations.Annotations, error) {
 	wasAdded, ratelimitData, err := o.client.AddEmailToGroup(ctx, entitlement.Id, principal.Id.Resource)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err
 	}
@@ -162,7 +206,7 @@ func (o *groupBuilder) Revoke(
 		grant.Entitlement.Id,
 		grant.Principal.Id.Resource,
 	)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err
 	}

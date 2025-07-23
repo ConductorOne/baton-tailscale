@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/conductorone/baton-tailscale/pkg/utils"
+	"github.com/conductorone/baton-tailscale/pkg/connutils"
 	"github.com/tailscale/hujson"
 )
 
@@ -25,7 +25,7 @@ const (
 
 func (r rule) GetValueOfNamedMember(name string) []string {
 	for _, member := range r.obj.Members {
-		literalName, err := utils.GetObjectMemberName(member)
+		literalName, err := connutils.GetObjectMemberName(member)
 		if err != nil || literalName != name {
 			continue
 		}
@@ -71,7 +71,7 @@ func GetRulesFromHujson(input hujson.ValueTrimmed, ruleKey ruleKey) ([]rule, err
 		return nil, errors.New("root value was not an object")
 	}
 	for _, member := range rootObj.Members {
-		name, err := utils.GetObjectMemberName(member)
+		name, err := connutils.GetObjectMemberName(member)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +110,7 @@ func FindRuleArray(
 	}
 
 	for _, member := range rootObj.Members {
-		name, err := utils.GetObjectMemberName(member)
+		name, err := connutils.GetObjectMemberName(member)
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +137,7 @@ func FindRuleArray(
 			}
 
 			for _, ruleMember := range ruleObj.Members {
-				ruleName, err := utils.GetObjectMemberName(ruleMember)
+				ruleName, err := connutils.GetObjectMemberName(ruleMember)
 				if err != nil {
 					return nil, err
 				}
@@ -174,7 +174,7 @@ func AddEmailToRule(
 	}
 	defer input.Format()
 
-	emails := utils.Convert(
+	emails := connutils.Convert(
 		ruleArray.Elements,
 		func(in hujson.ArrayElement) string {
 			lit, ok := in.Value.(hujson.Literal)

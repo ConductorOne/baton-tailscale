@@ -10,7 +10,7 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	resourceSDK "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-tailscale/pkg/connector/client"
-	"github.com/conductorone/baton-tailscale/pkg/utils"
+	"github.com/conductorone/baton-tailscale/pkg/connutils"
 )
 
 type sshRuleBuilder struct {
@@ -42,7 +42,7 @@ func (o *sshRuleBuilder) List(
 	error,
 ) {
 	rules, ratelimitData, err := o.client.ListSSHRules(ctx)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return nil, "", outputAnnotations, err
 	}
@@ -93,7 +93,7 @@ func (o *sshRuleBuilder) Grants(
 	error,
 ) {
 	emails, ratelimitData, err := o.client.ListSSHEmails(ctx, resource.Id.Resource)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return nil, "", outputAnnotations, err
 	}
@@ -108,7 +108,7 @@ func (o *sshRuleBuilder) Grant(
 	entitlement *v2.Entitlement,
 ) (annotations.Annotations, error) {
 	wasAdded, ratelimitData, err := o.client.AddEmailToSSHRule(ctx, entitlement.Id, principal.Id.Resource)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err
 	}
@@ -129,7 +129,7 @@ func (o *sshRuleBuilder) Revoke(
 		grant.Entitlement.Id,
 		grant.Principal.Id.Resource,
 	)
-	outputAnnotations := utils.WithRatelimitAnnotations(ratelimitData)
+	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err
 	}
