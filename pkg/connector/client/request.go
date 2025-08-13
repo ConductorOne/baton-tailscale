@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -24,19 +23,6 @@ const (
 	ifMatch     = "If-Match"
 )
 
-// WithBody TODO(marcos): Clean this up and move it to baton-sdk.
-func WithBody(body io.Reader) uhttp.RequestOption {
-	return func() (io.ReadWriter, map[string]string, error) {
-		var temp []byte
-		_, err := body.Read(temp)
-		if err != nil {
-			return nil, nil, err
-		}
-		buffer := new(bytes.Buffer)
-		return buffer, nil, nil
-	}
-}
-
 func (c *Client) getACLUrl() (*url.URL, error) {
 	return url.Parse(baseUrl + fmt.Sprintf(apiPathACL, c.tailnet))
 }
@@ -50,7 +36,7 @@ func (c *Client) get(ctx context.Context) (
 	return c.makeRequest(ctx, http.MethodGet, nil, "")
 }
 
-func (c *Client) post(ctx context.Context, requestBody io.Reader, etag string) (
+func (c *Client) post(ctx context.Context, requestBody []byte, etag string) (
 	*hujson.Value,
 	*v2.RateLimitDescription,
 	error,
@@ -67,7 +53,7 @@ func (c *Client) post(ctx context.Context, requestBody io.Reader, etag string) (
 func (c *Client) makeRequest(
 	ctx context.Context,
 	method string,
-	requestBody io.Reader,
+	requestBody []byte,
 	etag string,
 ) (
 	*hujson.Value,
@@ -85,8 +71,9 @@ func (c *Client) makeRequest(
 		uhttp.WithAccept(contentType),
 		uhttp.WithContentType(contentType),
 	}
+
 	if requestBody != nil {
-		options = append(options, WithBody(requestBody))
+		options = append(options, uhttp.WithBody(requestBody))
 	}
 	if etag != "" {
 		options = append(options, uhttp.WithHeader(ifMatch, etag))

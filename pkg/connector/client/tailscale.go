@@ -107,7 +107,8 @@ func (c *Client) AddEmailToGroup(ctx context.Context, groupName string, email st
 	}
 
 	response.Format()
-	postBody := strings.NewReader(response.String())
+	// hujson payload bytes
+	postBody := response.Pack()
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
 
 	return true, ratelimitData, err
@@ -129,7 +130,8 @@ func (c *Client) RemoveEmailFromGroup(ctx context.Context, groupName string, ema
 	}
 
 	response.Format()
-	postBody := strings.NewReader(response.String())
+	// hujson payload bytes
+	postBody := response.Pack()
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
 
 	return true, ratelimitData, err
@@ -162,7 +164,8 @@ func (c *Client) addEmailToRule(
 	}
 
 	response.Format()
-	postBody := strings.NewReader(response.String())
+	// hujson payload bytes
+	postBody := response.Pack()
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
 
 	return true, ratelimitData, err
@@ -203,7 +206,8 @@ func (c *Client) removeEmailFromRule(
 	}
 
 	response.Format()
-	postBody := strings.NewReader(response.String())
+	// hujson payload bytes
+	postBody := response.Pack()
 	_, ratelimitData, err = c.post(ctx, postBody, etag)
 
 	return true, ratelimitData, err

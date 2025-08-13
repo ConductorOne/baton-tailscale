@@ -184,7 +184,12 @@ func (o *groupBuilder) Grant(
 	principal *v2.Resource,
 	entitlement *v2.Entitlement,
 ) (annotations.Annotations, error) {
-	wasAdded, ratelimitData, err := o.client.AddEmailToGroup(ctx, entitlement.Id, principal.Id.Resource)
+	userTrait, err := resourceSDK.GetUserTrait(principal)
+	if err != nil {
+		return nil, fmt.Errorf("tailscale-connector: Failed to get user trait from user: %w", err)
+	}
+
+	wasAdded, ratelimitData, err := o.client.AddEmailToGroup(ctx, entitlement.Resource.Id.Resource, userTrait.GetLogin())
 	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err
@@ -201,10 +206,14 @@ func (o *groupBuilder) Revoke(
 	ctx context.Context,
 	grant *v2.Grant,
 ) (annotations.Annotations, error) {
+	userTrait, err := resourceSDK.GetUserTrait(grant.GetPrincipal())
+	if err != nil {
+		return nil, fmt.Errorf("tailscale-connector: Failed to get user trait from user: %w", err)
+	}
 	wasRevoked, ratelimitData, err := o.client.RemoveEmailFromGroup(
 		ctx,
-		grant.Entitlement.Id,
-		grant.Principal.Id.Resource,
+		grant.Entitlement.Resource.Id.Resource,
+		userTrait.GetLogin(),
 	)
 	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
