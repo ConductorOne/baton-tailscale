@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -23,19 +22,6 @@ const (
 	groupPrefix = "group:"
 	ifMatch     = "If-Match"
 )
-
-// WithBody TODO(marcos): Clean this up and move it to baton-sdk.
-func WithBody(body io.Reader) uhttp.RequestOption {
-	return func() (io.ReadWriter, map[string]string, error) {
-		var temp []byte
-		_, err := body.Read(temp)
-		if err != nil {
-			return nil, nil, err
-		}
-		buffer := new(bytes.Buffer)
-		return buffer, nil, nil
-	}
-}
 
 func (c *Client) getACLUrl() (*url.URL, error) {
 	return url.Parse(baseUrl + fmt.Sprintf(apiPathACL, c.tailnet))
