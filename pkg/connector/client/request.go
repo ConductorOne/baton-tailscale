@@ -50,7 +50,7 @@ func (c *Client) get(ctx context.Context) (
 	return c.makeRequest(ctx, http.MethodGet, nil, "")
 }
 
-func (c *Client) post(ctx context.Context, requestBody io.Reader, etag string) (
+func (c *Client) post(ctx context.Context, requestBody []byte, etag string) (
 	*hujson.Value,
 	*v2.RateLimitDescription,
 	error,
@@ -67,7 +67,7 @@ func (c *Client) post(ctx context.Context, requestBody io.Reader, etag string) (
 func (c *Client) makeRequest(
 	ctx context.Context,
 	method string,
-	requestBody io.Reader,
+	requestBody []byte,
 	etag string,
 ) (
 	*hujson.Value,
@@ -85,8 +85,9 @@ func (c *Client) makeRequest(
 		uhttp.WithAccept(contentType),
 		uhttp.WithContentType(contentType),
 	}
+
 	if requestBody != nil {
-		options = append(options, WithBody(requestBody))
+		options = append(options, uhttp.WithBody(requestBody))
 	}
 	if etag != "" {
 		options = append(options, uhttp.WithHeader(ifMatch, etag))
