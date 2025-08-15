@@ -88,33 +88,6 @@ func (o *groupBuilder) Entitlements(
 	return []*v2.Entitlement{membership}, "", nil, nil
 }
 
-func emailToGrants(resource *v2.Resource, emails []string) []*v2.Grant {
-	output := make([]*v2.Grant, 0)
-	for _, email := range emails {
-		user, err := resourceSDK.NewUserResource(
-			email,
-			userResourceType,
-			email,
-			[]resourceSDK.UserTraitOption{
-				resourceSDK.WithEmail(email, true),
-			},
-		)
-		if err != nil {
-			continue
-		}
-
-		output = append(
-			output,
-			grant.NewGrant(
-				resource,
-				entitlementName,
-				user.Id,
-			),
-		)
-	}
-	return output
-}
-
 func userIDsToGrants(resource *v2.Resource, userIDs []string) []*v2.Grant {
 	output := make([]*v2.Grant, 0)
 	for _, userID := range userIDs {
