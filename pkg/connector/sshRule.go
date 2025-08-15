@@ -98,7 +98,26 @@ func (o *sshRuleBuilder) Grants(
 		return nil, "", outputAnnotations, err
 	}
 
-	grants := emailToGrants(resource, emails)
+	users, _, err := o.client.GetUsers(ctx)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	userInvites, _, err := o.client.GetUserInvites(ctx)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	for _, userInvite := range userInvites {
+		users = append(users, client.User{
+			ID:        userInvite.ID,
+			LoginName: userInvite.Email,
+		})
+	}
+
+	userIDs := GetUserIDsFromUserEmails(users, emails)
+	grants := userIDsToGrants(resource, userIDs)
+
 	return grants, "", outputAnnotations, nil
 }
 
@@ -107,7 +126,12 @@ func (o *sshRuleBuilder) Grant(
 	principal *v2.Resource,
 	entitlement *v2.Entitlement,
 ) (annotations.Annotations, error) {
-	wasAdded, ratelimitData, err := o.client.AddEmailToSSHRule(ctx, entitlement.Id, principal.Id.Resource)
+	userTrait, err := resourceSDK.GetUserTrait(principal)
+	if err != nil {
+		return nil, fmt.Errorf("tailscale-connector: Failed to get user trait from user: %w", err)
+	}
+
+	wasAdded, ratelimitData, err := o.client.AddEmailToSSHRule(ctx, entitlement.Resource.Id.Resource, userTrait.GetLogin())
 	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err
@@ -124,10 +148,15 @@ func (o *sshRuleBuilder) Revoke(
 	ctx context.Context,
 	grant *v2.Grant,
 ) (annotations.Annotations, error) {
+	userTrait, err := resourceSDK.GetUserTrait(grant.GetPrincipal())
+	if err != nil {
+		return nil, fmt.Errorf("tailscale-connector: Failed to get user trait from user: %w", err)
+	}
+
 	wasRevoked, ratelimitData, err := o.client.RemoveEmailFromSSHRule(
 		ctx,
-		grant.Entitlement.Id,
-		grant.Principal.Id.Resource,
+		grant.Entitlement.Resource.Id.Resource,
+		userTrait.GetLogin(),
 	)
 	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
