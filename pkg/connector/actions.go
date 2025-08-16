@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// ActionResult stores the result of an action for later retrieval
+// ActionResult stores the result of an action for later retrieval.
 type ActionResult struct {
 	Status  v2.BatonActionStatus
 	Message string
@@ -85,7 +85,7 @@ var DevicePostureAttributeSchema = &v2.BatonActionSchema{
 	},
 }
 
-// Use the correct CustomActionManager interface methods
+// Use the correct CustomActionManager interface methods.
 func (c *Connector) ListActionSchemas(ctx context.Context) ([]*v2.BatonActionSchema, annotations.Annotations, error) {
 	schemas := []*v2.BatonActionSchema{
 		DevicePostureAttributeSchema,
@@ -191,6 +191,7 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 			},
 			"updated_devices": structpb.NewStringValue(strings.Join(updatedDevices, ", ")),
 			"device_count":    structpb.NewNumberValue(float64(len(updatedDevices))),
+			"total_devices":   structpb.NewNumberValue(float64(len(userDevices))),
 		},
 	}
 
@@ -207,7 +208,7 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 	return actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, result, nil, nil
 }
 
-// storeActionResult stores the result of an action for later retrieval
+// storeActionResult stores the result of an action for later retrieval.
 func (c *Connector) storeActionResult(actionID string, status v2.BatonActionStatus, message string, result *structpb.Struct) {
 	if c.actionResults == nil {
 		c.actionResults = make(map[string]*ActionResult)
@@ -219,7 +220,7 @@ func (c *Connector) storeActionResult(actionID string, status v2.BatonActionStat
 	}
 }
 
-// parseDuration parses duration strings like "30m", "1h", "1d" and returns time.Duration
+// parseDuration parses duration strings like "30m", "1h", "1d" and returns time.Duration.
 func parseDuration(durationStr string) (time.Duration, error) {
 	// Remove any whitespace
 	durationStr = strings.TrimSpace(durationStr)
