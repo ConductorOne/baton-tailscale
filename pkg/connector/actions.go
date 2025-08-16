@@ -65,6 +65,15 @@ var DevicePostureAttributeSchema = &v2.BatonActionSchema{
 				StringField: &v1.StringField{},
 			},
 		},
+		{
+			Name:        "expiry_value",
+			DisplayName: "Expiry Value",
+			Description: "(Optional) Expiry time for the device posture attribute",
+			IsRequired:  false,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
 	},
 	ReturnTypes: []*v1.Field{
 		{
