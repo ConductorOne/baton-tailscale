@@ -13,8 +13,15 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// ActionResult stores the result of an action for later retrieval
+type ActionResult struct {
+	Status  v2.BatonActionStatus
+	Message string
+	Result  *structpb.Struct
+}
+
 const (
-	SetDeviceAttributeActionID = "tailscale:set-device-attribute"
+	SetDevicePostureAttributeActionID = "tailscale:set-device-posture-attribute"
 )
 
 // Use the correct CustomActionManager interface methods
@@ -119,7 +126,7 @@ func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.Baton
 
 func (c *Connector) InvokeAction(ctx context.Context, name string, args *structpb.Struct) (string, v2.BatonActionStatus, *structpb.Struct, annotations.Annotations, error) {
 	switch name {
-	case SetDeviceAttributeActionID:
+	case SetDevicePostureAttributeActionID:
 		return c.performSetDeviceAttribute(ctx, args)
 	default:
 		return "", v2.BatonActionStatus_BATON_ACTION_STATUS_FAILED, nil, nil, fmt.Errorf("unsupported action: %s", name)
@@ -127,20 +134,11 @@ func (c *Connector) InvokeAction(ctx context.Context, name string, args *structp
 }
 
 func (c *Connector) GetActionStatus(ctx context.Context, id string) (v2.BatonActionStatus, string, *structpb.Struct, annotations.Annotations, error) {
-	// For now, we'll return a simple implementation
-	// In a real-world scenario, you might want to store action status in a database or cache
-
-	// Check if the ID matches any known action patterns
-	if strings.HasPrefix(id, "set-device-attribute-") {
-		// This is a set device attribute action
-		// For simplicity, we'll assume it completed successfully
-		result := &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"success": structpb.NewBoolValue(true),
-				"message": structpb.NewStringValue("Device attribute update completed successfully"),
-			},
+	// Check if we have a stored result for this action ID
+	if c.actionResults != nil {
+		if result, exists := c.actionResults[id]; exists {
+			return result.Status, result.Message, result.Result, nil, nil
 		}
-		return v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, "completed", result, nil, nil
 	}
 
 	// If we don't recognize the ID, return unknown status
@@ -219,7 +217,25 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 		result.Fields["errors"] = structpb.NewStringValue(strings.Join(errors, "; "))
 	}
 
-	return "completed", v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, result, nil, nil
+	// Generate a unique action ID that includes the result
+	actionID := fmt.Sprintf("set-device-attribute-%s-%d", email, time.Now().Unix())
+
+	// Store the result for later retrieval
+	c.storeActionResult(actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, "completed", result)
+
+	return actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, result, nil, nil
+}
+
+// storeActionResult stores the result of an action for later retrieval
+func (c *Connector) storeActionResult(actionID string, status v2.BatonActionStatus, message string, result *structpb.Struct) {
+	if c.actionResults == nil {
+		c.actionResults = make(map[string]*ActionResult)
+	}
+	c.actionResults[actionID] = &ActionResult{
+		Status:  status,
+		Message: message,
+		Result:  result,
+	}
 }
 
 // parseDuration parses duration strings like "30m", "1h", "1d" and returns time.Duration
