@@ -61,6 +61,15 @@ func (c *Connector) ListActionSchemas(ctx context.Context) ([]*v2.BatonActionSch
 						StringField: &v1.StringField{},
 					},
 				},
+				{
+					Name:        "comment_value",
+					DisplayName: "Comment Value",
+					Description: "The custom attribute value to set",
+					IsRequired:  false,
+					Field: &v1.Field_StringField{
+						StringField: &v1.StringField{},
+					},
+				},
 			},
 		},
 	}
@@ -102,12 +111,21 @@ func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.Baton
 						StringField: &v1.StringField{},
 					},
 				},
+				{
+					Name:        "comment_value",
+					DisplayName: "Comment Value",
+					Description: "A comment about the attribute set",
+					IsRequired:  true,
+					Field: &v1.Field_StringField{
+						StringField: &v1.StringField{},
+					},
+				},
 			},
 			ReturnTypes: []*v1.Field{
 				{
 					Name:        "success",
 					DisplayName: "Success",
-					Description: "Whether the user resource status was updated successfully",
+					Description: "Whether the device resource(s) attribute was updated successfully",
 					Field:       &v1.Field_BoolField{},
 				},
 			},
@@ -153,7 +171,7 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 	attributeKey := getStructValue(args, "attribute_key")
 	attributeValue := getStructValue(args, "attribute_value")
 	expiryValue := getStructValue(args, "expiry_value")
-	comment := getStructValue(args, "comment")
+	comment := getStructValue(args, "comment_value")
 
 	if email == "" || attributeKey == "" || attributeValue == "" {
 		return "", v2.BatonActionStatus_BATON_ACTION_STATUS_FAILED, nil, nil, fmt.Errorf("email, attribute_key, and attribute_value are required")
