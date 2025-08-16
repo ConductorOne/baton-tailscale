@@ -60,7 +60,7 @@ var DevicePostureAttributeSchema = &v2.BatonActionSchema{
 			Name:        "comment_value",
 			DisplayName: "Comment Value",
 			Description: "(Optional) Comment about the device posture attribute set",
-			IsRequired:  true,
+			IsRequired:  false,
 			Field: &v1.Field_StringField{
 				StringField: &v1.StringField{},
 			},
