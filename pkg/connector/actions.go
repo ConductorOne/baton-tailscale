@@ -87,7 +87,7 @@ func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.Baton
 				{
 					Name:        "email",
 					DisplayName: "User Email",
-					Description: "Email address of the user whose devices to update",
+					Description: "Email address of the user whose device(s) will have their device posture attribute updated",
 					IsRequired:  true,
 					Field: &v1.Field_StringField{
 						StringField: &v1.StringField{},
@@ -96,7 +96,7 @@ func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.Baton
 				{
 					Name:        "attribute_key",
 					DisplayName: "Attribute Key",
-					Description: "The custom attribute key to set",
+					Description: "The device posture attribute key to set",
 					IsRequired:  true,
 					Field: &v1.Field_StringField{
 						StringField: &v1.StringField{},
@@ -105,7 +105,7 @@ func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.Baton
 				{
 					Name:        "attribute_value",
 					DisplayName: "Attribute Value",
-					Description: "The custom attribute value to set",
+					Description: "The device posture attribute value to set",
 					IsRequired:  true,
 					Field: &v1.Field_StringField{
 						StringField: &v1.StringField{},
@@ -114,7 +114,7 @@ func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.Baton
 				{
 					Name:        "comment_value",
 					DisplayName: "Comment Value",
-					Description: "A comment about the attribute set",
+					Description: "A comment about the device posture attribute set",
 					IsRequired:  true,
 					Field: &v1.Field_StringField{
 						StringField: &v1.StringField{},
@@ -125,7 +125,7 @@ func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.Baton
 				{
 					Name:        "success",
 					DisplayName: "Success",
-					Description: "Whether the device resource(s) attribute was updated successfully",
+					Description: "Whether the device resource(s) device posture attribute was updated successfully",
 					Field:       &v1.Field_BoolField{},
 				},
 			},
@@ -211,7 +211,7 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 		if err != nil {
 			return "", v2.BatonActionStatus_BATON_ACTION_STATUS_FAILED, nil, nil, fmt.Errorf("invalid expiry value '%s': %w", expiryValue, err)
 		}
-		expiryTime := time.Now().Add(duration)
+		expiryTime := time.Now().UTC().Add(duration)
 		expiryTimestamp = expiryTime.Format(time.RFC3339)
 	}
 
@@ -245,35 +245,27 @@ func parseDuration(durationStr string) (time.Duration, error) {
 	// Remove any whitespace
 	durationStr = strings.TrimSpace(durationStr)
 
-	// Handle common duration formats
-	switch {
-	case strings.HasSuffix(durationStr, "m"):
-		minutes := strings.TrimSuffix(durationStr, "m")
-		if minutes == "" {
-			return 0, fmt.Errorf("invalid minutes format")
-		}
-		return time.ParseDuration(minutes + "m")
-	case strings.HasSuffix(durationStr, "h"):
-		hours := strings.TrimSuffix(durationStr, "h")
-		if hours == "" {
-			return 0, fmt.Errorf("invalid hours format")
-		}
-		return time.ParseDuration(hours + "h")
-	case strings.HasSuffix(durationStr, "d"):
+	// Check for negative values
+	if strings.HasPrefix(durationStr, "-") {
+		return 0, fmt.Errorf("negative duration not allowed: %s", durationStr)
+	}
+
+	// Handle days as a special case since time.ParseDuration doesn't support days
+	if strings.HasSuffix(durationStr, "d") {
 		days := strings.TrimSuffix(durationStr, "d")
 		if days == "" {
 			return 0, fmt.Errorf("invalid days format")
 		}
-		// Convert days to hours since time.ParseDuration doesn't support days
-		// Parse as hours and multiply by 24
+		// Convert days to hours (24 hours per day)
 		hours, err := time.ParseDuration(days + "h")
 		if err != nil {
 			return 0, fmt.Errorf("invalid days format: %w", err)
 		}
 		return hours * 24, nil
-	default:
-		return 0, fmt.Errorf("unsupported duration format: %s (use m, h, or d suffix)", durationStr)
 	}
+
+	// For everything else (minutes, hours, etc.), use time.ParseDuration directly
+	return time.ParseDuration(durationStr)
 }
 
 func getStructValue(args *structpb.Struct, fieldName string) string {
