@@ -115,6 +115,8 @@ func (c *Connector) GetActionStatus(ctx context.Context, id string) (v2.BatonAct
 	// Check if we have a stored result for this action ID
 	if c.actionResults != nil {
 		if result, exists := c.actionResults[id]; exists {
+			// Remove the result after successful retrieval to prevent memory leaks
+			delete(c.actionResults, id)
 			return result.Status, result.Message, result.Result, nil, nil
 		}
 	}
