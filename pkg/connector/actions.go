@@ -186,6 +186,9 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 	// Build result
 	result := &structpb.Struct{
 		Fields: map[string]*structpb.Value{
+			"success": {
+				Kind: &structpb.Value_BoolValue{BoolValue: len(updatedDevices) > 0 && len(errors) == 0},
+			},
 			"updated_devices": structpb.NewStringValue(strings.Join(updatedDevices, ", ")),
 			"device_count":    structpb.NewNumberValue(float64(len(updatedDevices))),
 		},
@@ -196,7 +199,7 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 	}
 
 	// Generate a unique action ID that includes the result
-	actionID := fmt.Sprintf("set-device-attribute-%s-%d", email, time.Now().Unix())
+	actionID := fmt.Sprintf("set-device-attribute-%s-%d", email, time.Now().UTC().Unix())
 
 	// Store the result for later retrieval
 	c.storeActionResult(actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, "completed", result)
