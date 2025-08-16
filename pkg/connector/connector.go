@@ -11,7 +11,8 @@ import (
 )
 
 type Connector struct {
-	client *client.Client
+	client        *client.Client
+	actionResults map[string]*ActionResult
 }
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.

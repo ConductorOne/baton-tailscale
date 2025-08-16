@@ -13,123 +13,81 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// ActionResult stores the result of an action for later retrieval
+type ActionResult struct {
+	Status  v2.BatonActionStatus
+	Message string
+	Result  *structpb.Struct
+}
+
 const (
-	SetDeviceAttributeActionID = "tailscale:set-device-attribute"
+	SetDevicePostureAttributeActionID = "tailscale:set-device-posture-attribute"
 )
+
+var DevicePostureAttributeSchema = &v2.BatonActionSchema{
+	Name:        SetDevicePostureAttributeActionID,
+	DisplayName: "Set Device Attribute",
+	Description: "Set a device posture attribute on all devices for a specific user",
+	Arguments: []*v1.Field{
+		{
+			Name:        "email",
+			DisplayName: "User Email",
+			Description: "Email address of the user whose device(s) will have their device posture attribute updated",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+		{
+			Name:        "attribute_key",
+			DisplayName: "Attribute Key",
+			Description: "The device posture attribute key to set",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+		{
+			Name:        "attribute_value",
+			DisplayName: "Attribute Value",
+			Description: "The device posture attribute value to set",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+		{
+			Name:        "comment_value",
+			DisplayName: "Comment Value",
+			Description: "(Optional) Comment about the device posture attribute set",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+	},
+	ReturnTypes: []*v1.Field{
+		{
+			Name:        "success",
+			DisplayName: "Success",
+			Description: "Whether the device resource(s) device posture attribute was updated successfully",
+			Field:       &v1.Field_BoolField{},
+		},
+	},
+}
 
 // Use the correct CustomActionManager interface methods
 func (c *Connector) ListActionSchemas(ctx context.Context) ([]*v2.BatonActionSchema, annotations.Annotations, error) {
 	schemas := []*v2.BatonActionSchema{
-		{
-			Name:        SetDeviceAttributeActionID,
-			DisplayName: "Set Device Attribute",
-			Description: "Set a custom attribute on all devices for a specific user",
-			Arguments: []*v1.Field{
-				{
-					Name:        "email",
-					DisplayName: "User Email",
-					Description: "Email address of the user whose devices to update",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "attribute_key",
-					DisplayName: "Attribute Key",
-					Description: "The custom attribute key to set",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "attribute_value",
-					DisplayName: "Attribute Value",
-					Description: "The custom attribute value to set",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "expiry_value",
-					DisplayName: "Expiry Value",
-					Description: "The custom attribute value to set",
-					IsRequired:  false,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "comment_value",
-					DisplayName: "Comment Value",
-					Description: "The custom attribute value to set",
-					IsRequired:  false,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-			},
-		},
+		DevicePostureAttributeSchema,
 	}
 	return schemas, nil, nil
 }
 
 func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.BatonActionSchema, annotations.Annotations, error) {
 	switch name {
-	case SetDeviceAttributeActionID:
-		return &v2.BatonActionSchema{
-			Name:        SetDeviceAttributeActionID,
-			DisplayName: "Set Device Attribute",
-			Description: "Set a custom attribute on all devices for a specific user",
-			Arguments: []*v1.Field{
-				{
-					Name:        "email",
-					DisplayName: "User Email",
-					Description: "Email address of the user whose device(s) will have their device posture attribute updated",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "attribute_key",
-					DisplayName: "Attribute Key",
-					Description: "The device posture attribute key to set",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "attribute_value",
-					DisplayName: "Attribute Value",
-					Description: "The device posture attribute value to set",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "comment_value",
-					DisplayName: "Comment Value",
-					Description: "A comment about the device posture attribute set",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-			},
-			ReturnTypes: []*v1.Field{
-				{
-					Name:        "success",
-					DisplayName: "Success",
-					Description: "Whether the device resource(s) device posture attribute was updated successfully",
-					Field:       &v1.Field_BoolField{},
-				},
-			},
-		}, nil, nil
+	case SetDevicePostureAttributeActionID:
+		return DevicePostureAttributeSchema, nil, nil
 	default:
 		return nil, nil, fmt.Errorf("action schema not found: %s", name)
 	}
@@ -137,7 +95,7 @@ func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.Baton
 
 func (c *Connector) InvokeAction(ctx context.Context, name string, args *structpb.Struct) (string, v2.BatonActionStatus, *structpb.Struct, annotations.Annotations, error) {
 	switch name {
-	case SetDeviceAttributeActionID:
+	case SetDevicePostureAttributeActionID:
 		return c.performSetDeviceAttribute(ctx, args)
 	default:
 		return "", v2.BatonActionStatus_BATON_ACTION_STATUS_FAILED, nil, nil, fmt.Errorf("unsupported action: %s", name)
@@ -145,20 +103,11 @@ func (c *Connector) InvokeAction(ctx context.Context, name string, args *structp
 }
 
 func (c *Connector) GetActionStatus(ctx context.Context, id string) (v2.BatonActionStatus, string, *structpb.Struct, annotations.Annotations, error) {
-	// For now, we'll return a simple implementation
-	// In a real-world scenario, you might want to store action status in a database or cache
-
-	// Check if the ID matches any known action patterns
-	if strings.HasPrefix(id, "set-device-attribute-") {
-		// This is a set device attribute action
-		// For simplicity, we'll assume it completed successfully
-		result := &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"success": structpb.NewBoolValue(true),
-				"message": structpb.NewStringValue("Device attribute update completed successfully"),
-			},
+	// Check if we have a stored result for this action ID
+	if c.actionResults != nil {
+		if result, exists := c.actionResults[id]; exists {
+			return result.Status, result.Message, result.Result, nil, nil
 		}
-		return v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, "completed", result, nil, nil
 	}
 
 	// If we don't recognize the ID, return unknown status
@@ -237,7 +186,25 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 		result.Fields["errors"] = structpb.NewStringValue(strings.Join(errors, "; "))
 	}
 
-	return "completed", v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, result, nil, nil
+	// Generate a unique action ID that includes the result
+	actionID := fmt.Sprintf("set-device-attribute-%s-%d", email, time.Now().Unix())
+
+	// Store the result for later retrieval
+	c.storeActionResult(actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, "completed", result)
+
+	return actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, result, nil, nil
+}
+
+// storeActionResult stores the result of an action for later retrieval
+func (c *Connector) storeActionResult(actionID string, status v2.BatonActionStatus, message string, result *structpb.Struct) {
+	if c.actionResults == nil {
+		c.actionResults = make(map[string]*ActionResult)
+	}
+	c.actionResults[actionID] = &ActionResult{
+		Status:  status,
+		Message: message,
+		Result:  result,
+	}
 }
 
 // parseDuration parses duration strings like "30m", "1h", "1d" and returns time.Duration
