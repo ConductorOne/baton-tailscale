@@ -454,3 +454,51 @@ func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) er
 	defer resp.Body.Close()
 	return nil
 }
+
+// SetDeviceAttribute sets a custom attribute on a device using the Tailscale API
+// POST /api/v2/device/{deviceId}/attributes/{attributeKey}
+func (c *Client) SetDeviceAttribute(ctx context.Context, deviceID, attributeKey, attributeValue string, expiryTimestamp string, comment string) error {
+	// Build the full URL for the device attribute endpoint
+	deviceURL := fmt.Sprintf("%s/device/%s/attributes/%s", c.baseUrl.String(), deviceID, attributeKey)
+
+	// Create the request body with the attribute value
+	requestBody := map[string]string{
+		"value": attributeValue,
+	}
+
+	if expiryTimestamp != "" {
+		requestBody["expires"] = expiryTimestamp
+	}
+
+	if comment != "" {
+		requestBody["comment"] = comment
+	}
+
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	// Make the POST request to set the device attribute
+	// Note: We need to create a custom request since the post method is for ACL updates
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, deviceURL, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(c.apiKey, "")
+
+	// Use the wrapper's HTTP client to make the request
+	response, err := c.wrapper.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to set device attribute: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusCreated {
+		return fmt.Errorf("failed to set device attribute: HTTP %d", response.StatusCode)
+	}
+
+	return nil
+}
