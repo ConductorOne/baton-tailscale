@@ -499,3 +499,36 @@ func (c *Client) SetDeviceAttribute(ctx context.Context, deviceID, attributeKey,
 
 	return nil
 }
+
+// DeleteDeviceAttribute deletes a custom attribute from a device using the Tailscale API
+// DELETE /api/v2/device/{deviceId}/attributes/{attributeKey}.
+func (c *Client) DeleteDeviceAttribute(ctx context.Context, deviceID, attributeKey string) error {
+	// 200 with a null body is returned if the attribute is not found, so we can't check for that.
+	// Build the full URL for the device attribute endpoint
+	deviceURL := c.baseUrl.JoinPath("device", deviceID, "attributes", attributeKey)
+
+	// Create the DELETE request
+	req, err := c.wrapper.NewRequest(
+		ctx,
+		http.MethodDelete,
+		deviceURL,
+		uhttp.WithAcceptJSONHeader(),
+		WithAuthorizationBearerHeader(c.apiKey),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Make the request using the wrapper's Do method
+	response, err := c.wrapper.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to delete device attribute: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to delete device attribute: HTTP %d", response.StatusCode)
+	}
+
+	return nil
+}

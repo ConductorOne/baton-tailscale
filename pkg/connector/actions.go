@@ -21,11 +21,12 @@ type ActionResult struct {
 }
 
 const (
-	SetDevicePostureAttributeActionID = "tailscale:set-device-posture-attribute"
+	SetDevicesPostureAttributeActionID    = "tailscale:set-device-posture-attribute-on-user-devices"
+	DeleteDevicesPostureAttributeActionID = "tailscale:delete-device-posture-attribute-on-user-devices"
 )
 
-var DevicePostureAttributeSchema = &v2.BatonActionSchema{
-	Name:        SetDevicePostureAttributeActionID,
+var SetUsersDevicesPostureAttributeSchema = &v2.BatonActionSchema{
+	Name:        SetDevicesPostureAttributeActionID,
 	DisplayName: "Set Device Attribute",
 	Description: "Set a device posture attribute on all devices for a specific user",
 	Arguments: []*v1.Field{
@@ -82,21 +83,94 @@ var DevicePostureAttributeSchema = &v2.BatonActionSchema{
 			Description: "Whether the device resource(s) device posture attribute was updated successfully",
 			Field:       &v1.Field_BoolField{},
 		},
+		{
+			Name:        "updated_devices",
+			DisplayName: "Updated Devices",
+			Description: "The devices that had their device posture attribute updated",
+			Field:       &v1.Field_StringField{},
+		},
+		{
+			Name:        "device_count",
+			DisplayName: "Device Count",
+			Description: "The number of devices that had their device posture attribute updated",
+			Field:       &v1.Field_IntField{},
+		},
+		{
+			Name:        "total_devices",
+			DisplayName: "Total Devices",
+			Description: "The total number of devices that were checked",
+			Field:       &v1.Field_IntField{},
+		},
+	},
+}
+
+var RemoveUsersDevicesPostureAttributeSchema = &v2.BatonActionSchema{
+	Name:        DeleteDevicesPostureAttributeActionID,
+	DisplayName: "Remove Device Attribute",
+	Description: "Remove a device posture attribute on all devices for a specific user",
+	Arguments: []*v1.Field{
+		{
+			Name:        "email",
+			DisplayName: "User Email",
+			Description: "Email address of the user whose device(s) will have their device posture attribute updated",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+		{
+			Name:        "attribute_key",
+			DisplayName: "Attribute Key",
+			Description: "The device posture attribute key to set",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+	},
+	ReturnTypes: []*v1.Field{
+		{
+			Name:        "success",
+			DisplayName: "Success",
+			Description: "Whether the device resource(s) device posture attribute was updated successfully",
+			Field:       &v1.Field_BoolField{},
+		},
+		{
+			Name:        "deleted_devices",
+			DisplayName: "Deleted Devices",
+			Description: "The devices that had their device posture attribute deleted",
+			Field:       &v1.Field_StringField{},
+		},
+		{
+			Name:        "device_count",
+			DisplayName: "Device Count",
+			Description: "The number of devices that had their device posture attribute deleted",
+			Field:       &v1.Field_IntField{},
+		},
+		{
+			Name:        "total_devices",
+			DisplayName: "Total Devices",
+			Description: "The total number of devices that were checked",
+			Field:       &v1.Field_IntField{},
+		},
 	},
 }
 
 // Use the correct CustomActionManager interface methods.
 func (c *Connector) ListActionSchemas(ctx context.Context) ([]*v2.BatonActionSchema, annotations.Annotations, error) {
 	schemas := []*v2.BatonActionSchema{
-		DevicePostureAttributeSchema,
+		SetUsersDevicesPostureAttributeSchema,
+		RemoveUsersDevicesPostureAttributeSchema,
 	}
 	return schemas, nil, nil
 }
 
 func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.BatonActionSchema, annotations.Annotations, error) {
 	switch name {
-	case SetDevicePostureAttributeActionID:
-		return DevicePostureAttributeSchema, nil, nil
+	case SetDevicesPostureAttributeActionID:
+		return SetUsersDevicesPostureAttributeSchema, nil, nil
+	case DeleteDevicesPostureAttributeActionID:
+		return RemoveUsersDevicesPostureAttributeSchema, nil, nil
 	default:
 		return nil, nil, fmt.Errorf("action schema not found: %s", name)
 	}
@@ -104,8 +178,10 @@ func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.Baton
 
 func (c *Connector) InvokeAction(ctx context.Context, name string, args *structpb.Struct) (string, v2.BatonActionStatus, *structpb.Struct, annotations.Annotations, error) {
 	switch name {
-	case SetDevicePostureAttributeActionID:
-		return c.performSetDeviceAttribute(ctx, args)
+	case SetDevicesPostureAttributeActionID:
+		return c.performSetDevicePostureAttribute(ctx, args)
+	case DeleteDevicesPostureAttributeActionID:
+		return c.performDeleteDevicePostureAttribute(ctx, args)
 	default:
 		return "", v2.BatonActionStatus_BATON_ACTION_STATUS_FAILED, nil, nil, fmt.Errorf("unsupported action: %s", name)
 	}
@@ -125,7 +201,7 @@ func (c *Connector) GetActionStatus(ctx context.Context, id string) (v2.BatonAct
 	return v2.BatonActionStatus_BATON_ACTION_STATUS_UNKNOWN, "", nil, nil, fmt.Errorf("action status not found: %s", id)
 }
 
-func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structpb.Struct) (string, v2.BatonActionStatus, *structpb.Struct, annotations.Annotations, error) {
+func (c *Connector) performSetDevicePostureAttribute(ctx context.Context, args *structpb.Struct) (string, v2.BatonActionStatus, *structpb.Struct, annotations.Annotations, error) {
 	// Extract input fields from structpb.Struct
 	email := getStructValue(args, "email")
 	attributeKey := getStructValue(args, "attribute_key")
@@ -203,6 +279,77 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 
 	// Generate a unique action ID that includes the result
 	actionID := fmt.Sprintf("set-device-attribute-%s-%d", email, time.Now().UTC().Unix())
+
+	// Store the result for later retrieval
+	c.storeActionResult(actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, "completed", result)
+
+	return actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, result, nil, nil
+}
+
+func (c *Connector) performDeleteDevicePostureAttribute(ctx context.Context, args *structpb.Struct) (string, v2.BatonActionStatus, *structpb.Struct, annotations.Annotations, error) {
+	// Extract input fields from structpb.Struct
+	email := getStructValue(args, "email")
+	attributeKey := getStructValue(args, "attribute_key")
+
+	if email == "" || attributeKey == "" {
+		return "", v2.BatonActionStatus_BATON_ACTION_STATUS_FAILED, nil, nil, fmt.Errorf("email and attribute_key are required")
+	}
+
+	// Get all devices for the tailnet
+	devices, _, err := c.client.GetDevices(ctx)
+	if err != nil {
+		return "", v2.BatonActionStatus_BATON_ACTION_STATUS_FAILED, nil, nil, fmt.Errorf("failed to list devices: %w", err)
+	}
+
+	// Filter devices by user email
+	var userDevices []client.Device
+	for _, device := range devices {
+		if device.User == email {
+			userDevices = append(userDevices, device)
+		}
+	}
+
+	if len(userDevices) == 0 {
+		result := &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"message": structpb.NewStringValue(fmt.Sprintf("No devices found for user: %s", email)),
+			},
+		}
+		return "no-devices", v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, result, nil, nil
+	}
+
+	// Delete custom attribute from each device
+	var deletedDevices []string
+	var errors []string
+
+	for _, device := range userDevices {
+		// DELETE /api/v2/device/{deviceId}/attributes/{attributeKey}
+		err := c.client.DeleteDeviceAttribute(ctx, device.ID, "custom:"+attributeKey)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Failed to delete attribute from device %s (%s): %v", device.Name, device.ID, err))
+		} else {
+			deletedDevices = append(deletedDevices, fmt.Sprintf("%s (%s)", device.Name, device.ID))
+		}
+	}
+
+	// Build result
+	result := &structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"success": {
+				Kind: &structpb.Value_BoolValue{BoolValue: len(deletedDevices) > 0 && len(errors) == 0},
+			},
+			"deleted_devices": structpb.NewStringValue(strings.Join(deletedDevices, ", ")),
+			"device_count":    structpb.NewNumberValue(float64(len(deletedDevices))),
+			"total_devices":   structpb.NewNumberValue(float64(len(userDevices))),
+		},
+	}
+
+	if len(errors) > 0 {
+		result.Fields["errors"] = structpb.NewStringValue(strings.Join(errors, "; "))
+	}
+
+	// Generate a unique action ID that includes the result
+	actionID := fmt.Sprintf("delete-device-attribute-%s-%d", email, time.Now().UTC().Unix())
 
 	// Store the result for later retrieval
 	c.storeActionResult(actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, "completed", result)
