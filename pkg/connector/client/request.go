@@ -108,13 +108,19 @@ func (c *Client) makeRequest(
 		return nil, "", &ratelimitData, err
 	}
 
+	// Ensure response is not nil before deferring close
+	if response == nil {
+		return nil, "", nil, errors.New("received nil response from HTTP client")
+	}
+
+	defer response.Body.Close()
+
 	responseContentType := response.Header.Get("content-type")
 	// We expect the content type to be `application/hujson`.
 	if !uhttp.IsJSONContentType(responseContentType) {
 		return nil, "", nil, fmt.Errorf("unexpected content type for json response: %s", responseContentType)
 	}
 
-	defer response.Body.Close()
 	bodyBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, "", nil, err
