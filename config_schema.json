@@ -13,6 +13,12 @@
       }
     },
     {
+      "name": "ignore-ephemeral-devices",
+      "displayName": "Ignore Ephemeral Devices",
+      "description": "Skip ingesting devices with isEphemeral=true attribute",
+      "boolField": {}
+    },
+    {
       "name": "log-level",
       "description": "The log level: debug, info, warn, error",
       "isOps": true,
