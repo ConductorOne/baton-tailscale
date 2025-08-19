@@ -6,6 +6,7 @@ import "reflect"
 type Tailscale struct {
 	ApiKey string `mapstructure:"api-key"`
 	Tailnet string `mapstructure:"tailnet"`
+	IgnoreEphemeralDevices bool `mapstructure:"ignore-ephemeral-devices"`
 }
 
 func (c* Tailscale) findFieldByTag(tagValue string) (any, bool) {

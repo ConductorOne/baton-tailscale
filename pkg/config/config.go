@@ -19,10 +19,18 @@ var (
 		field.WithRequired(true),
 		field.WithIsSecret(true),
 	)
+
+	IgnoreEphemeralDevicesField = field.BoolField(
+		"ignore-ephemeral-devices",
+		field.WithDisplayName("Ignore Ephemeral Devices"),
+		field.WithDescription("Skip ingesting devices with isEphemeral=true attribute"),
+	)
+
 	// ConfigurationFields defines the external configuration required for the connector to run.
 	ConfigurationFields = []field.SchemaField{
 		ApiKeyField,
 		TailnetField,
+		IgnoreEphemeralDevicesField,
 	}
 
 	Configurations     = field.NewConfiguration(ConfigurationFields)

@@ -11,8 +11,9 @@ import (
 )
 
 type deviceBuilder struct {
-	resourceType *v2.ResourceType
-	client       *client.Client
+	resourceType           *v2.ResourceType
+	client                 *client.Client
+	ignoreEphemeralDevices bool
 }
 
 func (d *deviceBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
@@ -48,6 +49,12 @@ func (d *deviceBuilder) List(ctx context.Context, parentResourceID *v2.ResourceI
 
 	for _, device := range devices {
 		deviceCopy := device
+
+		// Skip ephemeral devices if configured to ignore them
+		if d.ignoreEphemeralDevices && deviceCopy.IsEphemeral {
+			continue
+		}
+
 		dr, err := deviceResource(ctx, &deviceCopy, parentResourceID)
 		if err != nil {
 			return nil, "", nil, err
@@ -67,9 +74,10 @@ func (d *deviceBuilder) Grants(ctx context.Context, resource *v2.Resource, pToke
 	return nil, "", nil, nil
 }
 
-func newDeviceBuilder(client *client.Client) *deviceBuilder {
+func newDeviceBuilder(client *client.Client, ignoreEphemeralDevices bool) *deviceBuilder {
 	return &deviceBuilder{
-		resourceType: deviceResourceType,
-		client:       client,
+		resourceType:           deviceResourceType,
+		client:                 client,
+		ignoreEphemeralDevices: ignoreEphemeralDevices,
 	}
 }

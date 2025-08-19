@@ -55,6 +55,7 @@ type Device struct {
 	TailnetLockKey            string    `json:"tailnetLockKey,omitempty"`
 	UpdateAvailable           bool      `json:"updateAvailable,omitempty"`
 	User                      string    `json:"user,omitempty"`
+	IsEphemeral               bool      `json:"isEphemeral,omitempty"`
 }
 
 type UserInvitesAPIData []struct {

@@ -11,7 +11,8 @@ import (
 )
 
 type Connector struct {
-	client *client.Client
+	client                 *client.Client
+	ignoreEphemeralDevices bool
 }
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
@@ -22,7 +23,7 @@ func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.Reso
 		newSSHRuleBuilder(d.client),
 		newUserBuilder(d.client),
 		newRoleBuilder(d.client),
-		newDeviceBuilder(d.client),
+		newDeviceBuilder(d.client, d.ignoreEphemeralDevices),
 	}
 }
 
@@ -47,10 +48,13 @@ func (d *Connector) Validate(ctx context.Context) (annotations.Annotations, erro
 }
 
 // New returns a new instance of the connector.
-func New(ctx context.Context, apiKey string, tailnet string) (*Connector, error) {
+func New(ctx context.Context, apiKey string, tailnet string, ignoreEphemeralDevices bool) (*Connector, error) {
 	client, err := client.New(ctx, apiKey, tailnet)
 	if err != nil {
 		return nil, err
 	}
-	return &Connector{client: client}, nil
+	return &Connector{
+		client:                 client,
+		ignoreEphemeralDevices: ignoreEphemeralDevices,
+	}, nil
 }
