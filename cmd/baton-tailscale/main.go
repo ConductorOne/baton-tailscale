@@ -55,6 +55,7 @@ func getConnector(ctx context.Context, tsc *cfg.Tailscale) (types.ConnectorServe
 		ctx,
 		tsc.ApiKey,
 		tsc.Tailnet,
+		tsc.IgnoreEphemeralDevices,
 	)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
