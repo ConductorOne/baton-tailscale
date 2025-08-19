@@ -38,8 +38,4 @@ var (
 		Id:          "invite",
 		DisplayName: "Invite",
 	}
-	tailnetResourceType = &v2.ResourceType{
-		Id:          "tailnet",
-		DisplayName: "Tailnet",
-	}
 )
