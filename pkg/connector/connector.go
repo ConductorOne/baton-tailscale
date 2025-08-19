@@ -12,10 +12,9 @@ import (
 )
 
 type Connector struct {
-	client                 *client.Client
-	actionResults          map[string]*ActionResult
-	actionResultsMutex     sync.RWMutex
-	ignoreEphemeralDevices bool
+	client             *client.Client
+	actionResults      map[string]*ActionResult
+	actionResultsMutex sync.RWMutex
 }
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
@@ -26,7 +25,7 @@ func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.Reso
 		newSSHRuleBuilder(d.client),
 		newUserBuilder(d.client),
 		newRoleBuilder(d.client),
-		newDeviceBuilder(d.client, d.ignoreEphemeralDevices),
+		newDeviceBuilder(d.client),
 	}
 }
 
@@ -52,13 +51,12 @@ func (d *Connector) Validate(ctx context.Context) (annotations.Annotations, erro
 
 // New returns a new instance of the connector.
 func New(ctx context.Context, apiKey string, tailnet string, ignoreEphemeralDevices bool) (*Connector, error) {
-	client, err := client.New(ctx, apiKey, tailnet)
+	client, err := client.New(ctx, apiKey, tailnet, ignoreEphemeralDevices)
 	if err != nil {
 		return nil, err
 	}
 	return &Connector{
-		client:                 client,
-		actionResults:          make(map[string]*ActionResult),
-		ignoreEphemeralDevices: ignoreEphemeralDevices,
+		client:        client,
+		actionResults: make(map[string]*ActionResult),
 	}, nil
 }

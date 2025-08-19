@@ -23,7 +23,7 @@ func TestConnector(t *testing.T) {
 		t.Skip()
 	}
 
-	cliTest, err := client.New(ctx, apiKey, tailnet)
+	cliTest, err := client.New(ctx, apiKey, tailnet, false)
 	require.Nil(t, err)
 
 	u := &userBuilder{

@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// ActionResult stores the result of an action for later retrieval
+// ActionResult stores the result of an action for later retrieval.
 type ActionResult struct {
 	Status  v2.BatonActionStatus
 	Message string
@@ -192,7 +192,7 @@ func (c *Connector) GetActionStatus(ctx context.Context, id string) (v2.BatonAct
 	c.actionResultsMutex.RLock()
 	result, exists := c.actionResults[id]
 	c.actionResultsMutex.RUnlock()
-	
+
 	if exists {
 		// Need write lock to remove the result after successful retrieval to prevent memory leaks
 		c.actionResultsMutex.Lock()
@@ -357,7 +357,7 @@ func (c *Connector) performDeleteDevicePostureAttribute(ctx context.Context, arg
 	return actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, result, nil, nil
 }
 
-// storeActionResult stores the result of an action for later retrieval
+// storeActionResult stores the result of an action for later retrieval.
 func (c *Connector) storeActionResult(actionID string, status v2.BatonActionStatus, message string, result *structpb.Struct) {
 	c.actionResultsMutex.Lock()
 	defer c.actionResultsMutex.Unlock()
@@ -369,7 +369,7 @@ func (c *Connector) storeActionResult(actionID string, status v2.BatonActionStat
 	}
 }
 
-// parseDuration parses duration strings like "30m", "1h", "1d" and returns time.Duration
+// parseDuration parses duration strings like "30m", "1h", "1d" and returns time.Duration.
 func parseDuration(durationStr string) (time.Duration, error) {
 	// Remove any whitespace
 	durationStr = strings.TrimSpace(durationStr)

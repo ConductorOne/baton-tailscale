@@ -18,10 +18,11 @@ import (
 const userAgent = "ConductorOne/tailscale-connector-0.2.0"
 
 type Client struct {
-	apiKey  string
-	tailnet string
-	baseUrl *url.URL
-	wrapper *uhttp.BaseHttpClient
+	apiKey                 string
+	tailnet                string
+	baseUrl                *url.URL
+	wrapper                *uhttp.BaseHttpClient
+	IgnoreEphemeralDevices bool
 }
 
 // Documenting api calls
@@ -31,7 +32,7 @@ type Client struct {
 // POST - https://api.tailscale.com/api/v2/users/__USERID__/role
 
 // New creates a new client.
-func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
+func New(ctx context.Context, apiKey string, tailnet string, ignoreEphemeralDevices bool) (*Client, error) {
 	httpClient, err := uhttp.NewClient(
 		ctx,
 		uhttp.WithLogger(true, ctxzap.Extract(ctx)),
@@ -51,10 +52,11 @@ func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
 	}
 
 	return &Client{
-		apiKey:  apiKey,
-		tailnet: tailnet,
-		baseUrl: url,
-		wrapper: wrapper,
+		apiKey:                 apiKey,
+		tailnet:                tailnet,
+		baseUrl:                url,
+		wrapper:                wrapper,
+		IgnoreEphemeralDevices: ignoreEphemeralDevices,
 	}, nil
 }
 
