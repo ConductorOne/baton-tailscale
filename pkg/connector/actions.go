@@ -211,7 +211,7 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 	attributeKey := getStructValue(args, "attribute_key")
 	attributeValue := getStructValue(args, "attribute_value")
 	expiryValue := getStructValue(args, "expiry_value")
-	comment := getStructValue(args, "comment")
+	comment := getStructValue(args, "comment_value")
 
 	if email == "" || attributeKey == "" || attributeValue == "" {
 		return "", v2.BatonActionStatus_BATON_ACTION_STATUS_FAILED, nil, nil, fmt.Errorf("email, attribute_key, and attribute_value are required")
@@ -251,7 +251,7 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 		if err != nil {
 			return "", v2.BatonActionStatus_BATON_ACTION_STATUS_FAILED, nil, nil, fmt.Errorf("invalid expiry value '%s': %w", expiryValue, err)
 		}
-		expiryTime := time.Now().Add(duration)
+		expiryTime := time.Now().UTC().Add(duration)
 		expiryTimestamp = expiryTime.Format(time.RFC3339)
 	}
 
@@ -268,8 +268,12 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 	// Build result
 	result := &structpb.Struct{
 		Fields: map[string]*structpb.Value{
+			"success": {
+				Kind: &structpb.Value_BoolValue{BoolValue: len(updatedDevices) > 0 && len(errors) == 0},
+			},
 			"updated_devices": structpb.NewStringValue(strings.Join(updatedDevices, ", ")),
 			"device_count":    structpb.NewNumberValue(float64(len(updatedDevices))),
+			"total_devices":   structpb.NewNumberValue(float64(len(userDevices))),
 		},
 	}
 
@@ -278,7 +282,7 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 	}
 
 	// Generate a unique action ID that includes the result
-	actionID := fmt.Sprintf("set-device-attribute-%s-%d", email, time.Now().Unix())
+	actionID := fmt.Sprintf("set-device-attribute-%s-%d", email, time.Now().UTC().Unix())
 
 	// Store the result for later retrieval
 	c.storeActionResult(actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, "completed", result)
@@ -349,7 +353,7 @@ func (c *Connector) performDeleteDevicePostureAttribute(ctx context.Context, arg
 	}
 
 	// Generate a unique action ID that includes the result
-	actionID := fmt.Sprintf("delete-device-attribute-%s-%d", email, time.Now().Unix())
+	actionID := fmt.Sprintf("delete-device-attribute-%s-%d", email, time.Now().UTC().Unix())
 
 	// Store the result for later retrieval
 	c.storeActionResult(actionID, v2.BatonActionStatus_BATON_ACTION_STATUS_COMPLETE, "completed", result)
