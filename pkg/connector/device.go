@@ -49,12 +49,12 @@ func (d *deviceBuilder) List(ctx context.Context, parentResourceID *v2.ResourceI
 
 	for _, device := range devices {
 		deviceCopy := device
-		
+
 		// Skip ephemeral devices if configured to ignore them
 		if d.ignoreEphemeralDevices && deviceCopy.IsEphemeral {
 			continue
 		}
-		
+
 		dr, err := deviceResource(ctx, &deviceCopy, parentResourceID)
 		if err != nil {
 			return nil, "", nil, err
