@@ -21,104 +21,156 @@ type ActionResult struct {
 }
 
 const (
-	SetDevicePostureAttributeActionID = "tailscale:set-device-posture-attribute"
+	SetDevicesPostureAttributeActionID    = "tailscale:set-device-posture-attribute-on-user-devices"
+	DeleteDevicesPostureAttributeActionID = "tailscale:delete-device-posture-attribute-on-user-devices"
 )
 
-// Use the correct CustomActionManager interface methods
-func (c *Connector) ListActionSchemas(ctx context.Context) ([]*v2.BatonActionSchema, annotations.Annotations, error) {
-	schemas := []*v2.BatonActionSchema{
+var SetUsersDevicesPostureAttributeSchema = &v2.BatonActionSchema{
+	Name:        SetDevicesPostureAttributeActionID,
+	DisplayName: "Set Device Attribute",
+	Description: "Set a device posture attribute on all devices for a specific user",
+	Arguments: []*v1.Field{
 		{
-			Name:        SetDeviceAttributeActionID,
-			DisplayName: "Set Device Attribute",
-			Description: "Set a custom attribute on all devices for a specific user",
-			Arguments: []*v1.Field{
-				{
-					Name:        "email",
-					DisplayName: "User Email",
-					Description: "Email address of the user whose devices to update",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "attribute_key",
-					DisplayName: "Attribute Key",
-					Description: "The custom attribute key to set",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "attribute_value",
-					DisplayName: "Attribute Value",
-					Description: "The custom attribute value to set",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "expiry_value",
-					DisplayName: "Expiry Value",
-					Description: "The custom attribute value to set",
-					IsRequired:  false,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
+			Name:        "email",
+			DisplayName: "User Email",
+			Description: "Email address of the user whose device(s) will have their device posture attribute updated",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
 			},
 		},
+		{
+			Name:        "attribute_key",
+			DisplayName: "Attribute Key",
+			Description: "The device posture attribute key to set",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+		{
+			Name:        "attribute_value",
+			DisplayName: "Attribute Value",
+			Description: "The device posture attribute value to set",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+		{
+			Name:        "comment_value",
+			DisplayName: "Comment Value",
+			Description: "(Optional) Comment about the device posture attribute set",
+			IsRequired:  false,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+		{
+			Name:        "expiry_value",
+			DisplayName: "Expiry Value",
+			Description: "(Optional) Expiry time for the device posture attribute",
+			IsRequired:  false,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+	},
+	ReturnTypes: []*v1.Field{
+		{
+			Name:        "success",
+			DisplayName: "Success",
+			Description: "Whether the device resource(s) device posture attribute was updated successfully",
+			Field:       &v1.Field_BoolField{},
+		},
+		{
+			Name:        "updated_devices",
+			DisplayName: "Updated Devices",
+			Description: "The devices that had their device posture attribute updated",
+			Field:       &v1.Field_StringField{},
+		},
+		{
+			Name:        "device_count",
+			DisplayName: "Device Count",
+			Description: "The number of devices that had their device posture attribute updated",
+			Field:       &v1.Field_IntField{},
+		},
+		{
+			Name:        "total_devices",
+			DisplayName: "Total Devices",
+			Description: "The total number of devices that were checked",
+			Field:       &v1.Field_IntField{},
+		},
+	},
+}
+
+var RemoveUsersDevicesPostureAttributeSchema = &v2.BatonActionSchema{
+	Name:        DeleteDevicesPostureAttributeActionID,
+	DisplayName: "Remove Device Attribute",
+	Description: "Remove a device posture attribute on all devices for a specific user",
+	Arguments: []*v1.Field{
+		{
+			Name:        "email",
+			DisplayName: "User Email",
+			Description: "Email address of the user whose device(s) will have their device posture attribute removed",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+		{
+			Name:        "attribute_key",
+			DisplayName: "Attribute Key",
+			Description: "The device posture attribute key to remove",
+			IsRequired:  true,
+			Field: &v1.Field_StringField{
+				StringField: &v1.StringField{},
+			},
+		},
+	},
+	ReturnTypes: []*v1.Field{
+		{
+			Name:        "success",
+			DisplayName: "Success",
+			Description: "Whether the device resource(s) device posture attribute was removed successfully",
+			Field:       &v1.Field_BoolField{},
+		},
+		{
+			Name:        "deleted_devices",
+			DisplayName: "Deleted Devices",
+			Description: "The devices that had their device posture attribute deleted",
+			Field:       &v1.Field_StringField{},
+		},
+		{
+			Name:        "device_count",
+			DisplayName: "Device Count",
+			Description: "The number of devices that had their device posture attribute deleted",
+			Field:       &v1.Field_IntField{},
+		},
+		{
+			Name:        "total_devices",
+			DisplayName: "Total Devices",
+			Description: "The total number of devices that were checked",
+			Field:       &v1.Field_IntField{},
+		},
+	},
+}
+
+// Use the correct CustomActionManager interface methods.
+func (c *Connector) ListActionSchemas(ctx context.Context) ([]*v2.BatonActionSchema, annotations.Annotations, error) {
+	schemas := []*v2.BatonActionSchema{
+		SetUsersDevicesPostureAttributeSchema,
+		RemoveUsersDevicesPostureAttributeSchema,
 	}
 	return schemas, nil, nil
 }
 
 func (c *Connector) GetActionSchema(ctx context.Context, name string) (*v2.BatonActionSchema, annotations.Annotations, error) {
 	switch name {
-	case SetDeviceAttributeActionID:
-		return &v2.BatonActionSchema{
-			Name:        SetDeviceAttributeActionID,
-			DisplayName: "Set Device Attribute",
-			Description: "Set a custom attribute on all devices for a specific user",
-			Arguments: []*v1.Field{
-				{
-					Name:        "email",
-					DisplayName: "User Email",
-					Description: "Email address of the user whose devices to update",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "attribute_key",
-					DisplayName: "Attribute Key",
-					Description: "The custom attribute key to set",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-				{
-					Name:        "attribute_value",
-					DisplayName: "Attribute Value",
-					Description: "The custom attribute value to set",
-					IsRequired:  true,
-					Field: &v1.Field_StringField{
-						StringField: &v1.StringField{},
-					},
-				},
-			},
-			ReturnTypes: []*v1.Field{
-				{
-					Name:        "success",
-					DisplayName: "Success",
-					Description: "Whether the user resource status was updated successfully",
-					Field:       &v1.Field_BoolField{},
-				},
-			},
-		}, nil, nil
+	case SetDevicesPostureAttributeActionID:
+		return SetUsersDevicesPostureAttributeSchema, nil, nil
+	case DeleteDevicesPostureAttributeActionID:
+		return RemoveUsersDevicesPostureAttributeSchema, nil, nil
 	default:
 		return nil, nil, fmt.Errorf("action schema not found: %s", name)
 	}
@@ -135,10 +187,13 @@ func (c *Connector) InvokeAction(ctx context.Context, name string, args *structp
 
 func (c *Connector) GetActionStatus(ctx context.Context, id string) (v2.BatonActionStatus, string, *structpb.Struct, annotations.Annotations, error) {
 	// Check if we have a stored result for this action ID
-	if c.actionResults != nil {
-		if result, exists := c.actionResults[id]; exists {
-			return result.Status, result.Message, result.Result, nil, nil
-		}
+	c.actionResultsMutex.Lock()
+	defer c.actionResultsMutex.Unlock()
+
+	if result, exists := c.actionResults[id]; exists {
+		// Remove the result after successful retrieval to prevent memory leaks
+		delete(c.actionResults, id)
+		return result.Status, result.Message, result.Result, nil, nil
 	}
 
 	// If we don't recognize the ID, return unknown status
@@ -228,9 +283,9 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 
 // storeActionResult stores the result of an action for later retrieval
 func (c *Connector) storeActionResult(actionID string, status v2.BatonActionStatus, message string, result *structpb.Struct) {
-	if c.actionResults == nil {
-		c.actionResults = make(map[string]*ActionResult)
-	}
+	c.actionResultsMutex.Lock()
+	defer c.actionResultsMutex.Unlock()
+
 	c.actionResults[actionID] = &ActionResult{
 		Status:  status,
 		Message: message,

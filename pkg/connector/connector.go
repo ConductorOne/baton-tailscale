@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"io"
+	"sync"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -13,6 +14,7 @@ import (
 type Connector struct {
 	client                 *client.Client
 	actionResults          map[string]*ActionResult
+	actionResultsMutex     sync.RWMutex
 	ignoreEphemeralDevices bool
 }
 
@@ -56,6 +58,7 @@ func New(ctx context.Context, apiKey string, tailnet string, ignoreEphemeralDevi
 	}
 	return &Connector{
 		client:                 client,
+		actionResults:          make(map[string]*ActionResult),
 		ignoreEphemeralDevices: ignoreEphemeralDevices,
 	}, nil
 }
