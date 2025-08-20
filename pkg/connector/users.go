@@ -20,7 +20,7 @@ func (u *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return u.resourceType
 }
 
-func userResource(ctx context.Context, user *client.User, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+func userResource(_ context.Context, user *client.User, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	userStatus := v2.UserTrait_Status_STATUS_ENABLED
 	firstName, lastName := rs.SplitFullName(user.DisplayName)
 	profile := map[string]interface{}{

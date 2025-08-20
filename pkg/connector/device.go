@@ -19,7 +19,7 @@ func (d *deviceBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return d.resourceType
 }
 
-func deviceResource(ctx context.Context, device *client.Device, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+func deviceResource(_ context.Context, device *client.Device, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	return rs.NewResource(
 		device.Name,
 		deviceResourceType,
