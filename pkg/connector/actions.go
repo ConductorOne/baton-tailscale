@@ -256,7 +256,6 @@ func (c *Connector) performSetDeviceAttribute(ctx context.Context, args *structp
 	}
 
 	for _, device := range userDevices {
-		// POST /api/v2/device/{deviceId}/attributes/{attributeKey}
 		err := c.client.SetDeviceAttribute(ctx, device.ID, "custom:"+attributeKey, attributeValue, expiryTimestamp, comment)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Failed to set attribute on device %s (%s): %v", device.Name, device.ID, err))
