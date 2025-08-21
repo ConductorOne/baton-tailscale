@@ -92,13 +92,32 @@ func (o *aclRuleBuilder) Grants(
 	annotations.Annotations,
 	error,
 ) {
+	users, _, err := o.client.GetUsers(ctx)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	userInvites, _, err := o.client.GetUserInvites(ctx)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	for _, userInvite := range userInvites {
+		users = append(users, client.User{
+			ID:        userInvite.ID,
+			LoginName: userInvite.Email,
+		})
+	}
+
 	emails, ratelimitData, err := o.client.ListACLEmails(ctx, resource.Id.Resource)
 	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return nil, "", outputAnnotations, err
 	}
 
-	grants := emailToGrants(resource, emails)
+	userIDs := GetUserIDsFromUserEmails(users, emails)
+	grants := userIDsToGrants(resource, userIDs)
+
 	return grants, "", outputAnnotations, nil
 }
 
@@ -107,7 +126,11 @@ func (o *aclRuleBuilder) Grant(
 	principal *v2.Resource,
 	entitlement *v2.Entitlement,
 ) (annotations.Annotations, error) {
-	wasAdded, ratelimitData, err := o.client.AddEmailToACLRule(ctx, entitlement.Id, principal.Id.Resource)
+	userTrait, err := resourceSDK.GetUserTrait(principal)
+	if err != nil {
+		return nil, fmt.Errorf("tailscale-connector: Failed to get user trait from user: %w", err)
+	}
+	wasAdded, ratelimitData, err := o.client.AddEmailToACLRule(ctx, entitlement.Resource.Id.Resource, userTrait.GetLogin())
 	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err
@@ -124,11 +147,16 @@ func (o *aclRuleBuilder) Revoke(
 	ctx context.Context,
 	grant *v2.Grant,
 ) (annotations.Annotations, error) {
+	userTrait, err := resourceSDK.GetUserTrait(grant.GetPrincipal())
+	if err != nil {
+		return nil, fmt.Errorf("tailscale-connector: Failed to get user trait from user: %w", err)
+	}
 	wasRevoked, ratelimitData, err := o.client.RemoveEmailFromACLRule(
 		ctx,
-		grant.Entitlement.Id,
-		grant.Principal.Id.Resource,
+		grant.Entitlement.Resource.Id.Resource,
+		userTrait.GetLogin(),
 	)
+
 	outputAnnotations := connutils.WithRatelimitAnnotations(ratelimitData)
 	if err != nil {
 		return outputAnnotations, err

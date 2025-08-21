@@ -98,8 +98,8 @@ func GetRulesFromHujson(input hujson.ValueTrimmed, ruleKey ruleKey) ([]rule, err
 	return rv, nil
 }
 
-// FindRuleArray TODO MARCOS DESCRIBE
 func FindRuleArray(
+	ctx context.Context,
 	input *hujson.Value,
 	ruleKey ruleKey,
 	ruleHash string,
@@ -168,7 +168,7 @@ func AddEmailToRule(
 	ruleHash string,
 	email string,
 ) (bool, error) {
-	ruleArray, err := FindRuleArray(input, ruleKey, ruleHash)
+	ruleArray, err := FindRuleArray(ctx, input, ruleKey, ruleHash)
 	if err != nil {
 		return false, err
 	}
@@ -206,27 +206,79 @@ func RemoveEmailFromRule(
 	ruleHash string,
 	email string,
 ) (bool, error) {
-	ruleArray, err := FindRuleArray(input, ruleKey, ruleHash)
-	if err != nil {
-		return false, err
+	wasRemoved := false
+	foundRuleForHash := false
+
+	rootObj, ok := input.Value.(*hujson.Object)
+	if !ok {
+		return false, errors.New("root value was not an object")
 	}
 
-	wasRemoved := false
-	for i := 0; i < len(ruleArray.Elements); i++ {
-		element := ruleArray.Elements[i]
-		literalEmail, ok := element.Value.(hujson.Literal)
-		if !ok {
-			return wasRemoved, errors.New("expected email but wasn't a literal")
+	for _, member := range rootObj.Members {
+		name, err := connutils.GetObjectMemberName(member)
+		if err != nil {
+			return wasRemoved, err
 		}
 
-		if literalEmail.String() == email {
-			ruleArray.Elements = append(
-				ruleArray.Elements[:i],
-				ruleArray.Elements[i+1:]...,
-			)
-			wasRemoved = true
-			i--
+		// oneof: ssh or acls
+		if name != string(ruleKey) {
+			continue
 		}
+
+		rules, ok := member.Value.Value.(*hujson.Array)
+		if !ok {
+			return wasRemoved, errors.New("rule value was not an array")
+		}
+
+		for _, ruleElement := range rules.Elements {
+			ruleObj, ok := ruleElement.Value.(*hujson.Object)
+			if !ok {
+				return wasRemoved, errors.New("rule was not an object")
+			}
+
+			rule := rule{obj: ruleObj}
+			hash := rule.GetHash()
+			if hash != ruleHash {
+				continue
+			}
+			foundRuleForHash = true
+
+			for _, ruleMember := range ruleObj.Members {
+				ruleName, err := connutils.GetObjectMemberName(ruleMember)
+				if err != nil {
+					return wasRemoved, err
+				}
+
+				// If it's a 'src' array, or it's an ACL users array, remove our email
+				if ruleName == "src" || (ruleName == "users" && ruleKey == RuleKeyACLs) {
+					ruleMemberList, ok := ruleMember.Value.Value.(*hujson.Array)
+					if !ok {
+						return wasRemoved, errors.New("rule list was not an array")
+					}
+
+					for i := 0; i < len(ruleMemberList.Elements); i++ {
+						element := ruleMemberList.Elements[i]
+						literalEmail, ok := element.Value.(hujson.Literal)
+						if !ok {
+							continue
+						}
+
+						if literalEmail.String() == email {
+							ruleMemberList.Elements = append(
+								ruleMemberList.Elements[:i],
+								ruleMemberList.Elements[i+1:]...,
+							)
+							wasRemoved = true
+							i--
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if !foundRuleForHash {
+		return wasRemoved, errors.New("no rule found for that hash")
 	}
 
 	input.Format()
