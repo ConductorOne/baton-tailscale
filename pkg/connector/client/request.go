@@ -11,6 +11,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"github.com/segmentio/ksuid"
 	"github.com/tailscale/hujson"
 	"go.uber.org/zap"
 )
@@ -24,7 +25,15 @@ const (
 )
 
 func (c *Client) getACLUrl() (*url.URL, error) {
-	return url.Parse(baseUrl + fmt.Sprintf(apiPathACL, c.tailnet))
+	aclUrl, err := url.Parse(baseUrl + fmt.Sprintf(apiPathACL, c.tailnet))
+	if err != nil {
+		return nil, fmt.Errorf("tailscale-connector: error parsing acl url: %w", err)
+	}
+	uid := ksuid.New().String()
+	q := aclUrl.Query()
+	q.Set("baton-disable-cache", uid)
+	aclUrl.RawQuery = q.Encode()
+	return aclUrl, nil
 }
 
 func (c *Client) get(ctx context.Context) (
