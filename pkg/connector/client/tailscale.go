@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -352,6 +353,11 @@ func (c *Client) doRequest(ctx context.Context, path string, target interface{})
 		return nil, err
 	}
 
+	// Ensure response is not nil before deferring close
+	if response == nil {
+		return nil, errors.New("received nil response from HTTP client")
+	}
+
 	defer response.Body.Close()
 	return &ratelimitData, nil
 }
@@ -449,6 +455,11 @@ func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) er
 	resp, err := c.wrapper.Do(req)
 	if err != nil {
 		return err
+	}
+
+	// Ensure response is not nil before deferring close
+	if resp == nil {
+		return errors.New("received nil response from HTTP client")
 	}
 
 	defer resp.Body.Close()
