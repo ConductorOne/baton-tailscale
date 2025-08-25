@@ -18,10 +18,11 @@ import (
 const userAgent = "ConductorOne/tailscale-connector-0.2.0"
 
 type Client struct {
-	apiKey  string
-	tailnet string
-	baseUrl *url.URL
-	wrapper *uhttp.BaseHttpClient
+	apiKey                 string
+	tailnet                string
+	baseUrl                *url.URL
+	wrapper                *uhttp.BaseHttpClient
+	IgnoreEphemeralDevices bool
 }
 
 // Documenting api calls
@@ -31,7 +32,7 @@ type Client struct {
 // POST - https://api.tailscale.com/api/v2/users/__USERID__/role
 
 // New creates a new client.
-func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
+func New(ctx context.Context, apiKey string, tailnet string, ignoreEphemeralDevices bool) (*Client, error) {
 	httpClient, err := uhttp.NewClient(
 		ctx,
 		uhttp.WithLogger(true, ctxzap.Extract(ctx)),
@@ -51,10 +52,11 @@ func New(ctx context.Context, apiKey string, tailnet string) (*Client, error) {
 	}
 
 	return &Client{
-		apiKey:  apiKey,
-		tailnet: tailnet,
-		baseUrl: url,
-		wrapper: wrapper,
+		apiKey:                 apiKey,
+		tailnet:                tailnet,
+		baseUrl:                url,
+		wrapper:                wrapper,
+		IgnoreEphemeralDevices: ignoreEphemeralDevices,
 	}, nil
 }
 
@@ -452,5 +454,83 @@ func (c *Client) UpdateUserRole(ctx context.Context, userId, roleName string) er
 	}
 
 	defer resp.Body.Close()
+	return nil
+}
+
+// SetDeviceAttribute sets a custom attribute on a device using the Tailscale API
+// POST /api/v2/device/{deviceId}/attributes/{attributeKey}.
+func (c *Client) SetDeviceAttribute(ctx context.Context, deviceID, attributeKey, attributeValue string, expiryTimestamp string, comment string) error {
+	// Build the full URL for the device attribute endpoint
+	deviceURL := c.baseUrl.JoinPath("device", deviceID, "attributes", attributeKey)
+
+	// Create the request body with the attribute value
+	requestBody := map[string]string{
+		"value": attributeValue,
+	}
+
+	if expiryTimestamp != "" {
+		requestBody["expiry"] = expiryTimestamp
+	}
+
+	if comment != "" {
+		requestBody["comment"] = comment
+	}
+
+	req, err := c.wrapper.NewRequest(
+		ctx,
+		http.MethodPost,
+		deviceURL,
+		uhttp.WithAcceptJSONHeader(),
+		WithAuthorizationBearerHeader(c.apiKey),
+		uhttp.WithJSONBody(requestBody),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Make the request using the wrapper's Do method
+	response, err := c.wrapper.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to set device attribute: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusCreated {
+		return fmt.Errorf("failed to set device attribute: HTTP %d", response.StatusCode)
+	}
+
+	return nil
+}
+
+// DeleteDeviceAttribute deletes a custom attribute from a device using the Tailscale API
+// DELETE /api/v2/device/{deviceId}/attributes/{attributeKey}.
+func (c *Client) DeleteDeviceAttribute(ctx context.Context, deviceID, attributeKey string) error {
+	// 200 with a null body is returned if the attribute is not found, so we can't check for that.
+	// Build the full URL for the device attribute endpoint
+	deviceURL := c.baseUrl.JoinPath("device", deviceID, "attributes", attributeKey)
+
+	// Create the DELETE request
+	req, err := c.wrapper.NewRequest(
+		ctx,
+		http.MethodDelete,
+		deviceURL,
+		uhttp.WithAcceptJSONHeader(),
+		WithAuthorizationBearerHeader(c.apiKey),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Make the request using the wrapper's Do method
+	response, err := c.wrapper.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to delete device attribute: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to delete device attribute: HTTP %d", response.StatusCode)
+	}
+
 	return nil
 }

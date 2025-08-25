@@ -30,7 +30,7 @@ func (r *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 }
 
 // roleResource creates a new connector resource for a role.
-func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+func roleResource(_ context.Context, role *client.Role, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
 		"role_id":   role.ID,
 		"role_name": role.Name,
