@@ -5,10 +5,11 @@ go 1.23.4
 toolchain go1.24.2
 
 require (
-	github.com/conductorone/baton-sdk v0.3.35
+	github.com/conductorone/baton-sdk v0.3.39
 	github.com/ennyjfrick/ruleguard-logfatal v0.0.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/quasilyte/go-ruleguard/dsl v0.3.22
+	github.com/segmentio/ksuid v1.0.4
 	github.com/stretchr/testify v1.10.0
 	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a
 	go.uber.org/zap v1.27.0
@@ -79,7 +80,6 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
-	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
